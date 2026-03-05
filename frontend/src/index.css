@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100vh;
+    margin: 0;
+    background-color: #000;
+    color: #e5e7eb;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+/* Hide native date input calendar icon (often dark on dark theme); we show 📅 emoji instead */
+.date-input-emoji::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.date-input-emoji::-webkit-date-and-time-value {
+  text-align: left;
+}
