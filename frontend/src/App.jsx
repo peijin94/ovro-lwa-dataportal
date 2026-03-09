@@ -33,7 +33,7 @@ export default function App() {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [queryStart, setQueryStart] = useState('')
   const [queryEnd, setQueryEnd] = useState('')
-  const [queryCadence, setQueryCadence] = useState(60)
+  const [queryCadence, setQueryCadence] = useState(120)
   const [queryDataType, setQueryDataType] = useState('lev1_mfs')
   const [queryWithAllDaySpectrum, setQueryWithAllDaySpectrum] = useState(false)
   const [queryResults, setQueryResults] = useState(null)
@@ -541,7 +541,7 @@ export default function App() {
                 min="1"
                 className="bg-gray-800 text-white rounded px-3 py-2 border border-gray-600 w-20"
                 value={queryCadence}
-                onChange={(e) => setQueryCadence(Number(e.target.value) || 60)}
+                onChange={(e) => setQueryCadence(Number(e.target.value) || 120)}
               />
             </div>
             <div>

@@ -3,10 +3,14 @@
 Append new records to the LWA database by scanning the same NAS directories.
 Only records with date >= --starting_date are considered.
 Duplicate unique keys are skipped; use --verbose to print those.
+
+Directory traversal is optimized: only year/month/day (or year/month) folders
+>= starting_date are entered, instead of listing all then filtering by date.
 """
 import argparse
 import os
 import sqlite3
+from datetime import datetime, timezone, timedelta
 
 from build_db_fnames import (
     IMG_ROOT,
@@ -26,6 +30,14 @@ def _start_date_iso(starting_date: str) -> str:
     if len(s) != 8 or not s.isdigit():
         raise ValueError(f"starting_date must be yyyymmdd (8 digits), got {starting_date!r}")
     return f"{s[0:4]}-{s[4:6]}-{s[6:8]}"
+
+
+def _start_ymd(start_date_iso: str) -> tuple:
+    """Return (year, month, day) as ints from YYYY-MM-DD for folder pruning."""
+    parts = start_date_iso.split("-")
+    if len(parts) != 3:
+        raise ValueError(f"start_date_iso must be YYYY-MM-DD, got {start_date_iso!r}")
+    return (int(parts[0]), int(parts[1]), int(parts[2]))
 
 
 def _append_spec_daily(
@@ -67,13 +79,21 @@ def _append_spec_daily(
 def _append_spec_hourly(
     conn: sqlite3.Connection,
     start_date_iso: str,
+    start_ym: tuple,
 ) -> None:
+    """Only enter YYYYMM folders where (year, month) >= start_ym."""
     if not ensure_dir_exists(SPEC_HOURLY_DIR, "spec_hourly"):
         return
+    start_year, start_month = start_ym[0], start_ym[1]
     cur = conn.cursor()
     for ym in sorted(os.listdir(SPEC_HOURLY_DIR)):
+        if len(ym) != 6 or not ym.isdigit():
+            continue
+        yyyy_i, mm_i = int(ym[0:4]), int(ym[4:6])
+        if (yyyy_i, mm_i) < (start_year, start_month):
+            continue
         ym_dir = os.path.join(SPEC_HOURLY_DIR, ym)
-        if not os.path.isdir(ym_dir) or len(ym) != 6 or not ym.isdigit():
+        if not os.path.isdir(ym_dir):
             continue
         yyyy, mm = ym[0:4], ym[4:6]
         for fname in sorted(os.listdir(ym_dir)):
@@ -132,27 +152,42 @@ def _append_spec_daily_fits(
 def _append_img_table(
     conn: sqlite3.Connection,
     start_date_iso: str,
+    start_ymd: tuple,
     level: str,
     kind: str,
     table_name: str,
     verbose: bool,
 ) -> None:
+    """Only enter year/month/day folders where (y, m, d) >= start_ymd."""
     level_dir = os.path.join(IMG_ROOT, level)
     if not ensure_dir_exists(level_dir, table_name):
         return
+    start_year, start_month, start_day = start_ymd[0], start_ymd[1], start_ymd[2]
     pattern_fragment = f"{level}_{kind}_"
     cur = conn.cursor()
     for yyyy in sorted(os.listdir(level_dir)):
+        if len(yyyy) != 4 or not yyyy.isdigit():
+            continue
+        if int(yyyy) < start_year:
+            continue
         y_dir = os.path.join(level_dir, yyyy)
-        if not os.path.isdir(y_dir) or len(yyyy) != 4 or not yyyy.isdigit():
+        if not os.path.isdir(y_dir):
             continue
         for mm in sorted(os.listdir(y_dir)):
+            if len(mm) != 2 or not mm.isdigit():
+                continue
+            if (int(yyyy), int(mm)) < (start_year, start_month):
+                continue
             m_dir = os.path.join(y_dir, mm)
-            if not os.path.isdir(m_dir) or len(mm) != 2 or not mm.isdigit():
+            if not os.path.isdir(m_dir):
                 continue
             for dd in sorted(os.listdir(m_dir)):
+                if len(dd) != 2 or not dd.isdigit():
+                    continue
+                if (int(yyyy), int(mm), int(dd)) < (start_year, start_month, start_day):
+                    continue
                 d_dir = os.path.join(m_dir, dd)
-                if not os.path.isdir(d_dir) or len(dd) != 2 or not dd.isdigit():
+                if not os.path.isdir(d_dir):
                     continue
                 for fname in sorted(os.listdir(d_dir)):
                     if not fname.endswith(".hdf") or pattern_fragment not in fname:
@@ -181,15 +216,22 @@ def _append_img_table(
 def _append_movies(
     conn: sqlite3.Connection,
     start_date_iso: str,
+    start_ymd: tuple,
     verbose: bool,
 ) -> None:
+    """Only enter year folders where year >= start_ymd[0]."""
     if not ensure_dir_exists(MOVIES_ROOT, "movies"):
         return
+    start_year = start_ymd[0]
     cur = conn.cursor()
     prefix = "ovro-lwa-352.synop_mfs_image_I_movie_"
     for yyyy in sorted(os.listdir(MOVIES_ROOT)):
+        if len(yyyy) != 4 or not yyyy.isdigit():
+            continue
+        if int(yyyy) < start_year:
+            continue
         y_dir = os.path.join(MOVIES_ROOT, yyyy)
-        if not os.path.isdir(y_dir) or len(yyyy) != 4 or not yyyy.isdigit():
+        if not os.path.isdir(y_dir):
             continue
         for fname in sorted(os.listdir(y_dir)):
             if not fname.endswith(".mp4") or prefix not in fname:
@@ -279,9 +321,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--starting_date",
-        required=True,
+        default=None,
         metavar="yyyymmdd",
-        help="Only insert records with date >= this (e.g. 20260101).",
+        help="Only insert records with date >= this (e.g. 20260101). Default: today - 3 days (UTC).",
     )
     parser.add_argument(
         "--verbose",
@@ -294,27 +336,35 @@ def main() -> None:
         help="Path to SQLite database (default: LWA_DB_PATH or lwa_data.db).",
     )
     args = parser.parse_args()
+
+    if args.starting_date is None:
+        today = datetime.now(timezone.utc).date()
+        start_d = today - timedelta(days=3)
+        args.starting_date = start_d.strftime("%Y%m%d")
+
     start_date_iso = _start_date_iso(args.starting_date)
+    start_ymd = _start_ymd(start_date_iso)
+    start_ym = (start_ymd[0], start_ymd[1])
 
     conn = sqlite3.connect(args.db)
     try:
         print(f"[INFO] Appending from date >= {start_date_iso} into {args.db}")
         _append_spec_daily(conn, start_date_iso, args.verbose)
-        _append_spec_hourly(conn, start_date_iso)
+        _append_spec_hourly(conn, start_date_iso, start_ym)
         _append_spec_daily_fits(conn, start_date_iso, args.verbose)
         _append_img_table(
-            conn, start_date_iso, "lev1", "mfs", "img_lev1_mfs", args.verbose
+            conn, start_date_iso, start_ymd, "lev1", "mfs", "img_lev1_mfs", args.verbose
         )
         _append_img_table(
-            conn, start_date_iso, "lev15", "mfs", "img_lev15_mfs", args.verbose
+            conn, start_date_iso, start_ymd, "lev15", "mfs", "img_lev15_mfs", args.verbose
         )
         _append_img_table(
-            conn, start_date_iso, "lev1", "fch", "img_lev1_fch", args.verbose
+            conn, start_date_iso, start_ymd, "lev1", "fch", "img_lev1_fch", args.verbose
         )
         _append_img_table(
-            conn, start_date_iso, "lev15", "fch", "img_lev15_fch", args.verbose
+            conn, start_date_iso, start_ymd, "lev15", "fch", "img_lev15_fch", args.verbose
         )
-        _append_movies(conn, start_date_iso, args.verbose)
+        _append_movies(conn, start_date_iso, start_ymd, args.verbose)
         _refresh_datacount(conn, start_date_iso)
         conn.commit()
         print("[INFO] Done.")
