@@ -139,6 +139,15 @@ def day_summary(date: str) -> dict:
     return dc
 
 
+@router.get("/coverage/{year}")
+def data_coverage(year: int) -> dict:
+    """Return per-day datacount summaries for a given year."""
+    if year < 1900 or year > 9999:
+        raise HTTPException(status_code=400, detail="Invalid year")
+    days = database.get_datacount_for_year(year)
+    return {"year": year, "days": days}
+
+
 @router.get("/visitors/count")
 def visitors_count() -> dict:
     """Return total number of recorded visits."""

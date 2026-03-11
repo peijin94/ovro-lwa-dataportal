@@ -115,6 +115,51 @@ def get_datacount_for_date(date: str) -> Optional[dict]:
         conn.close()
 
 
+def get_datacount_for_year(year: int) -> List[dict]:
+    """Return datacount summaries for all dates in a given year."""
+    prefix = f"{year:04d}-"
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT
+                date,
+                n_spec_daily,
+                n_spec_daily_fits,
+                n_spec_hourly,
+                n_img_lev1_mfs,
+                n_img_lev1_fch,
+                n_img_lev15_mfs,
+                n_img_lev15_fch,
+                n_movies
+            FROM datacount
+            WHERE date LIKE ?
+            ORDER BY date
+            """,
+            (prefix + "%",),
+        )
+        rows = cur.fetchall()
+        results: List[dict] = []
+        for row in rows:
+            results.append(
+                {
+                    "date": row[0],
+                    "n_spec_daily": row[1],
+                    "n_spec_daily_fits": row[2],
+                    "n_spec_hourly": row[3],
+                    "n_img_lev1_mfs": row[4],
+                    "n_img_lev1_fch": row[5],
+                    "n_img_lev15_mfs": row[6],
+                    "n_img_lev15_fch": row[7],
+                    "n_movies": row[8],
+                }
+            )
+        return results
+    finally:
+        conn.close()
+
+
 def query_imaging(
     start_time: str,
     end_time: str,

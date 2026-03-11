@@ -42,6 +42,10 @@ export function getDaySummary(date) {
   return portal(`/day-summary/${date}`)
 }
 
+export function getCoverage(year) {
+  return portal(`/coverage/${year}`)
+}
+
 export function getVisitorCount() {
   return portal('/visitors/count')
 }

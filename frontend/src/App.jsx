@@ -4,6 +4,7 @@ import {
   getPreviewSpectrum,
   getPreviewMovie,
   getDaySummary,
+  getCoverage,
   getVisitorCount,
   postQuery,
   postStage,
@@ -56,6 +57,11 @@ export default function App() {
   const [seekPercent, setSeekPercent] = useState(0)
   const [daySummary, setDaySummary] = useState(null)
   const [visitorCount, setVisitorCount] = useState(null)
+  const [coverageOpen, setCoverageOpen] = useState(false)
+  const [coverageYear, setCoverageYear] = useState(null)
+  const [coverageDataByYear, setCoverageDataByYear] = useState({})
+  const [coverageLoading, setCoverageLoading] = useState(false)
+  const [coverageError, setCoverageError] = useState('')
 
   // Initialize Cloudflare Turnstile widget
   useEffect(() => {
@@ -253,6 +259,75 @@ export default function App() {
   const minDate = sortedAvail.length > 0 ? sortedAvail[0] : undefined
   const maxDate = sortedAvail.length > 0 ? sortedAvail[sortedAvail.length - 1] : undefined
 
+  function openCoverage() {
+    if (!selectedDate) return
+    const year = Number(selectedDate.slice(0, 4)) || new Date().getUTCFullYear()
+    setCoverageYear(year)
+    setCoverageOpen(true)
+    if (!coverageDataByYear[year]) {
+      setCoverageLoading(true)
+      setCoverageError('')
+      getCoverage(year)
+        .then((res) => {
+          const map = {}
+          if (Array.isArray(res.days)) {
+            res.days.forEach((d) => {
+              if (d && typeof d.date === 'string') {
+                map[d.date] = d
+              }
+            })
+          }
+          setCoverageDataByYear((prev) => ({ ...prev, [year]: map }))
+        })
+        .catch((err) => setCoverageError(err.message || 'Failed to load coverage'))
+        .finally(() => setCoverageLoading(false))
+    }
+  }
+
+  function changeCoverageYear(delta) {
+    const year = (coverageYear || new Date().getUTCFullYear()) + delta
+    setCoverageYear(year)
+    if (!coverageDataByYear[year]) {
+      setCoverageLoading(true)
+      setCoverageError('')
+      getCoverage(year)
+        .then((res) => {
+          const map = {}
+          if (Array.isArray(res.days)) {
+            res.days.forEach((d) => {
+              if (d && typeof d.date === 'string') {
+                map[d.date] = d
+              }
+            })
+          }
+          setCoverageDataByYear((prev) => ({ ...prev, [year]: map }))
+        })
+        .catch((err) => setCoverageError(err.message || 'Failed to load coverage'))
+        .finally(() => setCoverageLoading(false))
+    }
+  }
+
+  function coverageLevelForDate(year, monthIndex, day) {
+    const y = String(year).padStart(4, '0')
+    const m = String(monthIndex + 1).padStart(2, '0')
+    const d = String(day).padStart(2, '0')
+    const dateStr = `${y}-${m}-${d}`
+    const yearMap = coverageDataByYear[year]
+    const rec = yearMap ? yearMap[dateStr] : null
+    if (!rec) return 'none'
+    const specCount = (rec.n_spec_daily || 0) + (rec.n_spec_daily_fits || 0)
+    const imgCount =
+      (rec.n_img_lev1_mfs || 0) +
+      (rec.n_img_lev1_fch || 0) +
+      (rec.n_img_lev15_mfs || 0) +
+      (rec.n_img_lev15_fch || 0)
+    if (specCount <= 0 && imgCount <= 0) return 'none'
+    if (specCount > 0 && imgCount <= 0) return 'spec_only'
+    if (imgCount > 0 && imgCount < 300) return 'few_images'
+    if (imgCount >= 300) return 'many_images'
+    return 'none'
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto">
       <header className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -277,7 +352,16 @@ export default function App() {
         {/* Left block: date selection + spectrum preview */}
         <div className="flex flex-col gap-4">
           <div className="rounded border border-gray-600 bg-gray-800/50 p-3">
-            <label className="block text-sm text-gray-300 mb-1">Date (UTC)</label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-sm text-gray-300">Date (UTC)</label>
+              <button
+                type="button"
+                className="rounded bg-blue-700 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600"
+                onClick={openCoverage}
+              >
+                Data coverage
+              </button>
+            </div>
             <div className="flex flex-wrap items-end gap-2">
               <div className="relative inline-flex items-center">
                 <input
@@ -485,6 +569,105 @@ export default function App() {
             {!movieUrl && selectedDate && !loadingPreview && <p className="text-gray-500">No movie for this date.</p>}
         </div>
       </div>
+
+      {coverageOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg border border-gray-700 bg-gray-900 p-4 shadow-xl">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Data coverage</h2>
+                <p className="text-xs text-gray-400">
+                  Calendar colors: gray = no data, orange = spectrum only, yellow = &lt; 300 images, green = ≥ 300 images.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded bg-gray-800 px-2 py-1 text-sm text-gray-200 hover:bg-gray-700"
+                  onClick={() => changeCoverageYear(-1)}
+                >
+                  {coverageYear ? coverageYear - 1 : '«'}
+                </button>
+                <span className="text-sm font-medium text-white">
+                  {coverageYear ?? new Date().getUTCFullYear()}
+                </span>
+                <button
+                  type="button"
+                  className="rounded bg-gray-800 px-2 py-1 text-sm text-gray-200 hover:bg-gray-700"
+                  onClick={() => changeCoverageYear(1)}
+                >
+                  {coverageYear ? coverageYear + 1 : '»'}
+                </button>
+                <button
+                  type="button"
+                  className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+                  onClick={() => setCoverageOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            {coverageError && (
+              <p className="mb-2 text-sm text-red-400">{coverageError}</p>
+            )}
+            {coverageLoading && (
+              <p className="mb-2 text-sm text-gray-300">Loading…</p>
+            )}
+            {!coverageLoading && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 12 }).map((_, monthIdx) => {
+                  const year = coverageYear ?? new Date().getUTCFullYear()
+                  const first = new Date(Date.UTC(year, monthIdx, 1))
+                  const daysInMonth = new Date(Date.UTC(year, monthIdx + 1, 0)).getUTCDate()
+                  const startDow = first.getUTCDay() // 0=Sun
+                  const blanks = Array.from({ length: startDow })
+                  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+                  const monthName = first.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })
+                  return (
+                    <div key={monthIdx} className="rounded border border-gray-700 bg-gray-950/60 p-2">
+                      <div className="mb-1 text-center text-xs font-semibold text-gray-200">
+                        {monthName}
+                      </div>
+                      <div className="mb-1 grid grid-cols-7 text-center text-[10px] text-gray-400">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                      </div>
+                      <div className="grid grid-cols-7 gap-0.5 text-center text-[10px]">
+                        {blanks.map((_, i) => (
+                          <div key={`b-${i}`} />
+                        ))}
+                        {days.map((day) => {
+                          const level = coverageLevelForDate(year, monthIdx, day)
+                          let cls = 'bg-gray-800 text-gray-300'
+                          if (level === 'spec_only') cls = 'bg-orange-500 text-gray-900'
+                          else if (level === 'few_images') cls = 'bg-yellow-400 text-gray-900'
+                          else if (level === 'many_images') cls = 'bg-green-500 text-gray-900'
+                          const y = String(year).padStart(4, '0')
+                          const m = String(monthIdx + 1).padStart(2, '0')
+                          const d = String(day).padStart(2, '0')
+                          const dateStr = `${y}-${m}-${d}`
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              className={`flex h-6 w-6 items-center justify-center rounded ${cls}`}
+                              onClick={() => {
+                                setSelectedDate(dateStr)
+                                setCoverageOpen(false)
+                              }}
+                            >
+                              {day}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {hourlySpecs.length > 0 && (
         <section className="mb-8">

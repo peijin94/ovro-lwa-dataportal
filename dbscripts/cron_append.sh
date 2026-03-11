@@ -5,4 +5,4 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 export LWA_DB_PATH="${LWA_DB_PATH:-$SCRIPT_DIR/lwa_data.db}"
-python append_dataset.py
+python3 append_dataset.py
