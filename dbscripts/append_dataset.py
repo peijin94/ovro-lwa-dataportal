@@ -109,7 +109,17 @@ def _append_spec_hourly(
             if date_str < start_date_iso:
                 continue
             full_path = os.path.join(ym_dir, fname)
-            cur.execute("INSERT INTO spec_hourly (date, dir) VALUES (?, ?)", (date_str, full_path))
+            # spec_hourly table has no UNIQUE constraint, so avoid duplicate rows manually.
+            cur.execute(
+                """
+                INSERT INTO spec_hourly (date, dir)
+                SELECT ?, ?
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM spec_hourly WHERE date = ? AND dir = ?
+                )
+                """,
+                (date_str, full_path, date_str, full_path),
+            )
 
 
 def _append_spec_daily_fits(
