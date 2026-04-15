@@ -10,7 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from backend import database, files
+from backend import ai_summary, database, files
 from backend.config import (
     SPEC_ROOT,
     MOVIES_ROOT,
@@ -152,6 +152,17 @@ def data_coverage(year: int) -> dict:
 def visitors_count() -> dict:
     """Return total number of recorded visits."""
     return {"count": get_visitor_count()}
+
+
+@router.get("/ai-summary/{date}")
+def get_ai_summary(date: str) -> dict:
+    """Return AI summary text for a specific UTC date."""
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format, use YYYY-MM-DD")
+    summary = ai_summary.get_ai_summary_for_date(date)
+    return {"date": date, "summary": summary}
 
 
 @router.get("/preview/spectrum/{date}")

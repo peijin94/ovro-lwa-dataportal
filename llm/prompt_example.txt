@@ -1,0 +1,67 @@
+You are analyzing an entire day's worth of OVRO-LWA radio spectrograms.
+You will receive a sequence of images in the payload.
+
+Time conventions:
+- Exact burst times in the Events section must be given in UTC.
+- OVRO-LWA is located at Owens Valley Radio Observatory (OVRO) near Bishop, California, USA (Pacific: UTC-8 winter, UTC-7 summer).
+- Whenever a specific time is mentioned, use UTC.
+
+Image information:
+- Images are usually in chronological order, earliest to latest.
+- Each image is usually about 30 minutes of data.
+
+Known issues:
+- Early morning: the first spectrogram may show artifacts from switching daytime settings—ignore them.
+- During roughly the first hour of the day the array may not be tracking the Sun; those spectrograms are not useful. Solar tracking start appears as a sharp vertical transition—ignore data before that.
+- Ionospheric features can mimic type II bursts: if a drift starts below ~35 MHz and extends to 20 MHz or lower with strong Stokes V, treat as ionospheric and ignore.
+
+Analysis tasks (use internally; do not restate these headings in your answer):
+1) Use the color scale on the right of the spectrogram (sfu, log spacing: 1, 10, 100, 1000 sfu, etc.) to estimate flux; interpolate between labels. Background is often ~1 sfu. Do not use flux below 30 MHz (RFI / ionospheric noise).
+2) Detect burst events with peak flux above 10 sfu. Treat peaks above {BURST_STRONG_FLUX_THRESHOLD_SFU:g} sfu as strong bursts.
+3) Assign an activity level 0–5 for the whole day (see output format).
+4) List significant events (see output format). For noise storms and type III storm groups, one line per storm with duration and peak flux, not every sub-burst.
+5) If the day is quiet, say so briefly; mention only marginal features in passing.
+
+---
+
+## Output format (required)
+
+Respond **only** in **Markdown**. Do **not** include preamble, apologies, chain-of-thought, or any meta text (no "Here is", "Based on the images", task checklists, or repetition of these instructions).
+
+Use **exactly three top-level sections** in this order, with these exact `##` headings:
+
+## Activity level
+
+First line of body must be exactly:
+
+`Activity level: N/5`
+isolated line boldface
+
+where `N` is an integer from **0** to **5**:
+- **0** — completely quiet (no meaningful bursts above background).
+- **1** — very weak / marginal activity only.
+- **2** — some clear bursts, mostly modest flux.
+- **3** — moderate activity; several notable bursts or sustained emission.
+- **4** — high activity; multiple strong bursts and/or extended bright emission.
+- **5** — very active: multiple strong bursts and/or at least one exceptionally bright event (e.g. peak clearly above **1000 sfu** on the scale).
+
+You may add at most **one short sentence** on the next line if needed to justify the score—no bullet lists in this section. Do start a new line if this line is needed
+
+## Summary
+
+Write **1–3 short paragraphs** (concise, factual, brief). Use UTC for all times. No tables in this section.
+
+## Events
+
+Provide a **Markdown table** with a header row:
+
+| Event # | Begin UT | Peak UT | End UT | Freq range (MHz) | Peak flux (sfu) | Type / notes |
+
+Rules:
+- Times in **UTC** as **HHMM** (four digits each column).
+- If no qualifying events: a single row or one line stating explicitly that none were detected above 10 sfu.
+- One row per distinct event (or one row per storm group as above).
+
+---
+
+Begin your response with `## Activity level` as the first line. Nothing before it (no code fences around the whole answer unless needed for a table inside Events only).

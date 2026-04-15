@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
   getAvailDates,
   getPreviewSpectrum,
@@ -6,11 +8,13 @@ import {
   getDaySummary,
   getCoverage,
   getVisitorCount,
+  getAiSummary,
   postQuery,
   postStage,
   getEphemeris,
   downloadUrl,
 } from './api'
+import geminiLogo from './assets/gemini.svg'
 
 const MOVIE_FPS = 10 // frames per second for step (1 frame = 1/10 s)
 
@@ -62,6 +66,10 @@ export default function App() {
   const [coverageDataByYear, setCoverageDataByYear] = useState({})
   const [coverageLoading, setCoverageLoading] = useState(false)
   const [coverageError, setCoverageError] = useState('')
+  const [aiSummaryOpen, setAiSummaryOpen] = useState(false)
+  const [aiSummaryText, setAiSummaryText] = useState('')
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
+  const [aiSummaryError, setAiSummaryError] = useState('')
 
   // Initialize Cloudflare Turnstile widget
   useEffect(() => {
@@ -140,6 +148,20 @@ export default function App() {
     getDaySummary(selectedDate)
       .then(setDaySummary)
       .catch(() => setDaySummary(null))
+  }, [selectedDate])
+
+  // Load AI summary for the currently selected day on page load/date change.
+  useEffect(() => {
+    if (!selectedDate) return
+    setAiSummaryLoading(true)
+    setAiSummaryError('')
+    getAiSummary(selectedDate)
+      .then((res) => setAiSummaryText(res.summary || 'template text'))
+      .catch((err) => {
+        setAiSummaryText('')
+        setAiSummaryError(err.message || 'Failed to load AI summary')
+      })
+      .finally(() => setAiSummaryLoading(false))
   }, [selectedDate])
 
   function changeDay(offset) {
@@ -445,6 +467,19 @@ export default function App() {
                 )}
               </div>
             )}
+            <div className="mt-3">
+              <button
+                type="button"
+                className="inline-flex items-start gap-2 rounded-lg border border-sky-500 bg-sky-500/10 px-4 py-2 text-left hover:bg-sky-500/20"
+                onClick={() => setAiSummaryOpen(true)}
+              >
+                <img src={geminiLogo} alt="Gemini" className="mt-0.5 h-4 w-4 shrink-0" />
+                <span className="leading-tight">
+                  <span className="block text-lg font-semibold text-sky-300">AI summary</span>
+                  <span className="block text-xs text-gray-400">Powered by gemini-3-flash-preview</span>
+                </span>
+              </button>
+            </div>
             {!dailySpec && selectedDate && !loadingPreview && <p className="text-gray-500">No daily spectrum.</p>}
           </div>
         </div>
@@ -663,6 +698,38 @@ export default function App() {
                     </div>
                   )
                 })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {aiSummaryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="w-full max-w-2xl rounded-lg border border-gray-700 bg-gray-900 p-4 shadow-xl">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-white">
+                AI Summary ({selectedDate || 'N/A'})
+              </h2>
+              <button
+                type="button"
+                className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+                onClick={() => setAiSummaryOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            {aiSummaryLoading && (
+              <p className="text-sm text-gray-300">Loading AI summary…</p>
+            )}
+            {!aiSummaryLoading && aiSummaryError && (
+              <p className="text-sm text-red-400">{aiSummaryError}</p>
+            )}
+            {!aiSummaryLoading && !aiSummaryError && (
+              <div className="max-h-[60vh] overflow-auto rounded border border-gray-700 bg-gray-950/70 p-3 text-sm text-gray-200 [&_a]:text-sky-400 [&_a]:underline [&_code]:rounded [&_code]:bg-gray-800 [&_code]:px-1 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-gray-700 [&_h2]:pb-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-sky-200 [&_h2:first-child]:mt-0 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2 [&_strong]:text-gray-100 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_td]:border [&_td]:border-gray-600 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-gray-600 [&_th]:bg-gray-800 [&_th]:px-2 [&_th]:py-1 [&_th]:text-gray-200 [&_tr:nth-child(even)]:bg-gray-900/50">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {aiSummaryText || 'template text'}
+                </ReactMarkdown>
               </div>
             )}
           </div>

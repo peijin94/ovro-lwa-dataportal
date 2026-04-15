@@ -50,6 +50,10 @@ export function getVisitorCount() {
   return portal('/visitors/count')
 }
 
+export function getAiSummary(date) {
+  return portal(`/ai-summary/${date}`)
+}
+
 export function postQuery(body) {
   return fetch(`${BASE}/portal/query`, {
     method: 'POST',

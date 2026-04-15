@@ -55,6 +55,11 @@ STAGE_WORK_PATH = Path(os.getenv("STAGE_WORK_PATH", "/home/peijin/tmpdir/work"))
 STAGE_READY_PATH = Path(os.getenv("STAGE_READY_PATH", "/home/peijin/tmpdir/ready"))
 STAGE_URL_BASE = os.getenv("STAGE_URL_BASE", "https://ovsa.njit.edu/lwa-data/tmp/").rstrip("/") + "/"
 
+# AI summary SQLite store
+AI_SUMMARY_DB_PATH = Path(
+    os.getenv("AI_SUMMARY_DB_PATH", str(PROJECT_ROOT / "llm" / "ai_summary.db"))
+)
+
 # Cloudflare Turnstile (optional; when unset, staging can be configured to reject or skip verification)
 _kc_turnstile_site = getattr(key_config, "TURNSTILE_SITE_KEY", "") if key_config else ""
 _kc_turnstile_secret = getattr(key_config, "TURNSTILE_SECRET_KEY", "") if key_config else ""
