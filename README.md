@@ -59,6 +59,9 @@ The service is intended to run at **localhost:5001** and be exposed at **https:/
 | `SMTP_FROM` | Backend | From address for staging emails (default `ovsa.operations.noreply@gmail.com`). |
 | `STAGE_WORK_PATH` | Backend | Directory for temporary staging work trees (default `/home/peijin/tmpdir/work`). |
 | `STAGE_READY_PATH` | Backend | Directory where ready zip files are written (default `/home/peijin/tmpdir/ready`). |
+| `STAGE_RETENTION_HOURS` | Cleanup cron | Delete staged zips and orphaned work dirs older than this many hours (default `12`). |
+
+Staged zips are not removed on download. Schedule daily cleanup at 00:00 UTC: see [dbscripts/CRONTAB.md](dbscripts/CRONTAB.md) (`cron_cleanup_stage.sh`).
 
 NAS roots (spectrum, imaging, movies, FITS) are set in `backend/config.py` to match `dbscripts/build_db_fnames.py`.
 

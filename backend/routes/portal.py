@@ -270,6 +270,15 @@ def stage_data(request: Request, background: BackgroundTasks, body: StageBody) -
     if not rows:
         raise HTTPException(status_code=400, detail="No files in range")
     file_count, total_size_bytes = _file_count_and_size(rows)
+    if body.with_all_day_spectrum:
+        start_date = body.start_time[:10]
+        end_date = body.end_time[:10]
+        fits_paths = database.get_spec_fits_paths_for_range(start_date, end_date)
+        if fits_paths:
+            fits_rows = [(None, p) for p in fits_paths]
+            fits_count, fits_size = _file_count_and_size(fits_rows)
+            file_count += fits_count
+            total_size_bytes += fits_size
     if file_count > STAGE_MAX_FILES:
         raise HTTPException(status_code=400, detail="Too many files in one request")
     if total_size_bytes >= STAGE_MAX_BYTES:
@@ -292,28 +301,20 @@ def stage_data(request: Request, background: BackgroundTasks, body: StageBody) -
             dest = work_dir / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
-        # Optionally copy daily spectrum PNGs / FITS
+        # Optionally copy all-day spectrum FITS (same as query)
         if body.with_all_day_spectrum:
-            try:
-                start_d = datetime.strptime(body.start_time[:10], "%Y-%m-%d").date()
-                end_d = datetime.strptime(body.end_time[:10], "%Y-%m-%d").date()
-            except ValueError:
-                start_d = end_d = None
-            if start_d is not None and end_d is not None:
-                d = start_d
-                while d <= end_d:
-                    paths = database.get_spectrum_paths_for_date(d.strftime("%Y-%m-%d"))
-                    for full_path in paths:
-                        pair = files.full_path_to_root_and_relative(full_path)
-                        if not pair:
-                            continue
-                        root_key, rel = pair
-                        src = files.resolve_to_allowed_path(root_key, rel)
-                        if src and src.is_file():
-                            dest = work_dir / "spectrum" / rel
-                            dest.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(src, dest)
-                    d += timedelta(days=1)
+            start_date = body.start_time[:10]
+            end_date = body.end_time[:10]
+            for full_path in database.get_spec_fits_paths_for_range(start_date, end_date):
+                pair = files.full_path_to_root_and_relative(full_path)
+                if not pair:
+                    continue
+                root_key, rel = pair
+                src = files.resolve_to_allowed_path(root_key, rel)
+                if src and src.is_file():
+                    dest = work_dir / "spectrum" / rel
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, dest)
 
         # Zip into ready directory
         STAGE_READY_PATH.mkdir(parents=True, exist_ok=True)
