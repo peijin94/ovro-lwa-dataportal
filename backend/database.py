@@ -75,6 +75,68 @@ def get_spec_fits_paths_for_range(start_date: str, end_date: str) -> List[str]:
         conn.close()
 
 
+def get_spec_fits_path_for_date(date: str) -> Optional[str]:
+    """Return full FITS path for a date from spec_daily_fits, or None."""
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT dir FROM spec_daily_fits WHERE date = ?", (date,))
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc):
+                return None
+            raise
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+
+def get_imaging_datetimes_for_date(date: str, data_type: str = "lev1_mfs") -> List[str]:
+    """Return ordered imaging datetime strings for a date and data type."""
+    table = DATA_TYPE_TO_TABLE.get(data_type)
+    if not table:
+        return []
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        try:
+            cur.execute(f"SELECT datetime FROM {table} WHERE date = ? ORDER BY datetime", (date,))
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc):
+                return []
+            raise
+        return [row[0] for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_imaging_datetimes_for_range(
+    start_time: str,
+    end_time: str,
+    data_type: str = "lev1_mfs",
+) -> List[str]:
+    """Return ordered imaging datetime strings in [start_time, end_time]."""
+    table = DATA_TYPE_TO_TABLE.get(data_type)
+    if not table:
+        return []
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                f"SELECT datetime FROM {table} WHERE datetime >= ? AND datetime <= ? ORDER BY datetime",
+                (start_time, end_time),
+            )
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc):
+                return []
+            raise
+        return [row[0] for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
 def get_datacount_for_date(date: str) -> Optional[dict]:
     """Return datacount summary for a date, or None."""
     conn = get_connection()
