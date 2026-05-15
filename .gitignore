@@ -53,3 +53,6 @@ Thumbs.db
 # Logs and local run
 *.log
 logs/
+
+# Local agent context
+CONTEXT.md

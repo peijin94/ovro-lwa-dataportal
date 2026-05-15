@@ -12,11 +12,35 @@ import {
   postQuery,
   postStage,
   getEphemeris,
-  downloadUrl,
 } from './api'
 import geminiLogo from './assets/gemini.svg'
 
-const MOVIE_FPS = 10 // frames per second for step (1 frame = 1/10 s)
+const MOVIE_FPS = 6 // daily movies are encoded at 6 fps
+const DAILY_SPEC_PLOT_BOUNDS = {
+  left: 62 / 800,
+  right: 716 / 800,
+  top: 37 / 400,
+  bottom: 361 / 400,
+}
+
+function parseUtcTimestamp(s) {
+  if (!s || typeof s !== 'string') return null
+  const normalized = s.trim().replace('T', ' ').replace(/Z$/, '').slice(0, 19)
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(normalized)) {
+    const ms = new Date(normalized + 'Z').getTime()
+    return Number.isNaN(ms) ? null : ms
+  }
+  return null
+}
+
+function formatUtcTimestamp(ms) {
+  if (ms == null || Number.isNaN(ms)) return ''
+  return new Date(ms).toISOString().replace('T', ' ').slice(0, 19)
+}
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n))
+}
 
 function formatDate(d) {
   const y = d.getFullYear()
@@ -34,7 +58,9 @@ export default function App() {
   const [availDates, setAvailDates] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
   const [spectrumUrls, setSpectrumUrls] = useState([])
+  const [dailySpecAxis, setDailySpecAxis] = useState(null)
   const [movieUrl, setMovieUrl] = useState(null)
+  const [movieTiming, setMovieTiming] = useState(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [queryStart, setQueryStart] = useState('')
   const [queryEnd, setQueryEnd] = useState('')
@@ -59,6 +85,7 @@ export default function App() {
   const [movieSpeed, setMovieSpeed] = useState(1)
   const [movieSeeking, setMovieSeeking] = useState(false)
   const [seekPercent, setSeekPercent] = useState(0)
+  const [movieTimeMs, setMovieTimeMs] = useState(null)
   const [daySummary, setDaySummary] = useState(null)
   const [visitorCount, setVisitorCount] = useState(null)
   const [coverageOpen, setCoverageOpen] = useState(false)
@@ -119,11 +146,17 @@ export default function App() {
     Promise.all([getPreviewSpectrum(selectedDate), getPreviewMovie(selectedDate)])
       .then(([spec, mov]) => {
         setSpectrumUrls(spec.urls || [])
+        setDailySpecAxis(spec.daily_axis || null)
         setMovieUrl(mov.url || null)
+        setMovieTiming(mov.timing || null)
+        setMovieTimeMs(null)
       })
       .catch(() => {
         setSpectrumUrls([])
+        setDailySpecAxis(null)
         setMovieUrl(null)
+        setMovieTiming(null)
+        setMovieTimeMs(null)
       })
       .finally(() => setLoadingPreview(false))
   }, [selectedDate])
@@ -173,12 +206,7 @@ export default function App() {
 
   // Parse "YYYY-MM-DD HH:MM:SS" as UTC for validation
   function parseUtcTime(s) {
-    if (!s || typeof s !== 'string') return null
-    const normalized = s.trim().replace('T', ' ').slice(0, 19)
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(normalized)) {
-      return new Date(normalized + 'Z').getTime()
-    }
-    return NaN
+    return parseUtcTimestamp(s) ?? NaN
   }
   const queryStartMs = parseUtcTime(queryStart)
   const queryEndMs = parseUtcTime(queryEnd)
@@ -249,6 +277,24 @@ export default function App() {
   const hourlySpecs = spectrumUrls.slice(1)
   const sortedAvail = [...availDates].sort()
 
+  function movieTimeFromVideo(v) {
+    if (!v || !isFinite(v.duration) || v.duration <= 0 || !movieTiming) return null
+    const startMs = parseUtcTimestamp(movieTiming.start_time)
+    const endMs = parseUtcTimestamp(movieTiming.end_time)
+    if (startMs == null || endMs == null || endMs <= startMs) return null
+    const progress = clamp(v.currentTime / v.duration, 0, 1)
+    return Math.round((startMs + progress * (endMs - startMs)) / 1000) * 1000
+  }
+
+  function updateMovieStateFromVideo(v) {
+    if (!v || !isFinite(v.duration)) {
+      setMovieTimeMs(null)
+      return
+    }
+    setMovieCurrentFrame(Math.round(v.currentTime * MOVIE_FPS))
+    setMovieTimeMs(movieTimeFromVideo(v))
+  }
+
   function movieStepFrames(delta) {
     const v = videoRef.current
     if (!v || !isFinite(v.duration)) return
@@ -256,7 +302,7 @@ export default function App() {
     let t = v.currentTime + delta * frameTime
     t = Math.max(0, Math.min(v.duration, t))
     v.currentTime = t
-    setMovieCurrentFrame(Math.round(t * MOVIE_FPS))
+    updateMovieStateFromVideo(v)
   }
 
   function moviePlayPause() {
@@ -350,6 +396,24 @@ export default function App() {
     return 'none'
   }
 
+  const movieTimeLabel = movieTimeMs == null ? '' : formatUtcTimestamp(movieTimeMs)
+  const movieTimeIsApprox = movieTimeMs != null && movieTiming?.is_exact === false
+  const dailyAxisStartMs = parseUtcTimestamp(dailySpecAxis?.start_time)
+  const dailyAxisEndMs = parseUtcTimestamp(dailySpecAxis?.end_time)
+  const showSpectrogramIndicator =
+    movieTimeMs != null &&
+    dailyAxisStartMs != null &&
+    dailyAxisEndMs != null &&
+    dailyAxisEndMs > dailyAxisStartMs &&
+    movieTimeMs >= dailyAxisStartMs &&
+    movieTimeMs <= dailyAxisEndMs
+  const spectrogramIndicatorLeft = showSpectrogramIndicator
+    ? (DAILY_SPEC_PLOT_BOUNDS.left +
+        ((movieTimeMs - dailyAxisStartMs) / (dailyAxisEndMs - dailyAxisStartMs)) *
+          (DAILY_SPEC_PLOT_BOUNDS.right - DAILY_SPEC_PLOT_BOUNDS.left)) *
+      100
+    : null
+
   return (
     <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto">
       <header className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -424,12 +488,23 @@ export default function App() {
             )}
             <h3 className="text-lg text-gray-200 mb-2">Daily spectrogram</h3>
             {dailySpec && (
-              <div>
+              <div className="relative inline-block max-w-full align-top">
                 <img
                   src={dailySpec}
                   alt="Daily spectrum"
-                  className="max-w-full rounded border border-gray-600"
+                  className="block max-w-full rounded border border-gray-600"
                 />
+                {spectrogramIndicatorLeft !== null && (
+                  <div
+                    className="pointer-events-none absolute w-0.5 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.9)]"
+                    style={{
+                      left: `calc(${spectrogramIndicatorLeft}% - 1px)`,
+                      top: `${DAILY_SPEC_PLOT_BOUNDS.top * 100}%`,
+                      height: `${(DAILY_SPEC_PLOT_BOUNDS.bottom - DAILY_SPEC_PLOT_BOUNDS.top) * 100}%`,
+                    }}
+                    title={movieTimeLabel ? `${movieTimeIsApprox ? '~' : ''}${movieTimeLabel} UTC` : undefined}
+                  />
+                )}
               </div>
             )}
             {daySummary && (
@@ -505,12 +580,13 @@ export default function App() {
                       setMovieCurrentFrame(0)
                     }
                     setSeekPercent(0)
+                    setMovieTimeMs(movieTimeFromVideo(v))
                     setMoviePlaying(false)
                   }}
                   onTimeUpdate={(e) => {
                     const v = e.target
                     if (isFinite(v.duration)) {
-                      setMovieCurrentFrame(Math.round(v.currentTime * MOVIE_FPS))
+                      updateMovieStateFromVideo(v)
                       if (!movieSeeking) setSeekPercent((v.currentTime / v.duration) * 100)
                     }
                   }}
@@ -535,7 +611,7 @@ export default function App() {
                     const v = videoRef.current
                     if (v && isFinite(v.duration)) {
                       v.currentTime = (p / 100) * v.duration
-                      setMovieCurrentFrame(Math.round(v.currentTime * MOVIE_FPS))
+                      updateMovieStateFromVideo(v)
                     }
                   }}
                 />
@@ -594,9 +670,19 @@ export default function App() {
                     &gt;&gt;
                   </button>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span>Total <span className="font-mono">[{movieTotalFrames}]</span></span>
-                    <span>Current <span className="font-mono">[{movieCurrentFrame}]</span></span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span>
+                      UTC{' '}
+                      <span className="font-mono">
+                        [{movieTimeLabel ? `${movieTimeIsApprox ? '~' : ''}${movieTimeLabel}` : 'unavailable'}]
+                      </span>
+                    </span>
+                    {movieTimeIsApprox && (
+                      <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs text-amber-200">
+                        approximate
+                      </span>
+                    )}
+                    <span>Frame <span className="font-mono">[{movieCurrentFrame}/{movieTotalFrames}]</span></span>
                   </div>
                 </div>
               </>

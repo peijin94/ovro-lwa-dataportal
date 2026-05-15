@@ -2,7 +2,7 @@
 import os
 import shutil
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -113,6 +113,103 @@ def _preview_url_from_dir(full_path: str) -> Optional[str]:
     return None
 
 
+def _parse_fits_value(card: str) -> Optional[str]:
+    if len(card) < 10 or card[8] != "=":
+        return None
+    raw = card[10:].split("/", 1)[0].strip()
+    if not raw:
+        return None
+    if raw.startswith("'"):
+        end = raw.find("'", 1)
+        return raw[1:end] if end > 1 else raw.strip("'")
+    return raw.split()[0]
+
+
+def _read_fits_header(path: str) -> dict:
+    header = {}
+    try:
+        with open(path, "rb") as fh:
+            while True:
+                block = fh.read(2880)
+                if not block:
+                    break
+                for i in range(0, len(block), 80):
+                    card = block[i : i + 80].decode("ascii", errors="ignore")
+                    key = card[:8].strip()
+                    if key == "END":
+                        return header
+                    value = _parse_fits_value(card)
+                    if key and value is not None:
+                        header[key] = value
+    except OSError:
+        return {}
+    return header
+
+
+def _normalize_utc_timestamp(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    text = str(value).strip().strip("'").replace("T", " ")
+    if text.endswith("Z"):
+        text = text[:-1]
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _spectrogram_axis_metadata(date: str) -> dict:
+    fits_path = database.get_spec_fits_path_for_date(date)
+    if not fits_path:
+        return {"start_time": None, "end_time": None, "source": None}
+
+    header = _read_fits_header(fits_path)
+    start_time = None
+    end_time = None
+    for key in ("DATE-OBS", "DATE_OBS", "DATE-BEG", "DATE_BEG", "DATE-START", "DATE_START"):
+        start_time = _normalize_utc_timestamp(header.get(key))
+        if start_time:
+            break
+    for key in ("DATE-END", "DATE_END", "DATE-STOP", "DATE_STOP"):
+        end_time = _normalize_utc_timestamp(header.get(key))
+        if end_time:
+            break
+    source = "spec_daily_fits_header" if start_time and end_time else None
+    return {"start_time": start_time, "end_time": end_time, "source": source}
+
+
+def _movie_timing_metadata(date: str) -> dict:
+    axis = _spectrogram_axis_metadata(date)
+    if axis.get("start_time") and axis.get("end_time"):
+        timestamps = database.get_imaging_datetimes_for_range(
+            axis["start_time"],
+            axis["end_time"],
+            "lev1_mfs",
+        )
+        source = "img_lev1_mfs_in_spectrogram_axis"
+    else:
+        timestamps = database.get_imaging_datetimes_for_date(date, "lev1_mfs")
+        source = "img_lev1_mfs"
+    if not timestamps:
+        return {
+            "start_time": None,
+            "end_time": None,
+            "timestamps": [],
+            "source": None,
+            "is_exact": False,
+        }
+    return {
+        "start_time": timestamps[0],
+        "end_time": timestamps[-1],
+        "timestamps": timestamps,
+        "source": source,
+        "is_exact": False,
+    }
+
+
 @router.get("/avail-dates")
 def avail_dates() -> List[str]:
     """Return list of dates that have data (from spec_daily)."""
@@ -178,7 +275,7 @@ def preview_spectrum(date: str) -> dict:
         u = _preview_url_from_dir(d)
         if u:
             urls.append(u)
-    return {"date": date, "files": files_meta, "urls": urls}
+    return {"date": date, "files": files_meta, "urls": urls, "daily_axis": _spectrogram_axis_metadata(date)}
 
 
 @router.get("/preview/movie/{date}")
@@ -186,10 +283,10 @@ def preview_movie(date: str) -> dict:
     """Return single preview URL and file ref for movie on date, or null."""
     dir_path = database.get_movie_path_for_date(date)
     if not dir_path:
-        return {"date": date, "file": None, "url": None}
+        return {"date": date, "file": None, "url": None, "timing": _movie_timing_metadata(date)}
     ref = _dir_to_ref(dir_path)
     url = _preview_url_from_dir(dir_path)
-    return {"date": date, "file": ref, "url": url}
+    return {"date": date, "file": ref, "url": url, "timing": _movie_timing_metadata(date)}
 
 
 def _file_count_and_size(rows: List[tuple]) -> tuple:
