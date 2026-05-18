@@ -4,6 +4,9 @@ from typing import Optional
 
 from backend.config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM
 
+LWA_SOLAR_UTIL_URL = "https://github.com/ovro-eovsa/lwa-solar-util"
+LWA_SOLAR_UTIL_NOTEBOOK_URL = "https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook"
+
 
 def _format_bytes(n: int) -> str:
     if n >= 1_000_000_000:
@@ -45,6 +48,9 @@ def send_stage_email(
         f"Total size: {size_str}\n\n"
         f"Download link:\n{download_url}\n\n"
         "This link may be temporary; please download the data as soon as convenient.\n\n"
+        "Working with the downloaded data (FITS/HDF imaging cubes, dynamic spectrum FITS):\n"
+        f"  lwa-solar-util guide: {LWA_SOLAR_UTIL_URL}\n"
+        f"  Example notebooks: {LWA_SOLAR_UTIL_NOTEBOOK_URL}\n\n"
         "This message was sent from an unmonitored address "
         f"({SMTP_FROM}); replies are not read."
     )

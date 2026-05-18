@@ -17,6 +17,8 @@ import {
 import geminiLogo from './assets/gemini.svg'
 
 const MOVIE_FPS = 10 // frames per second for step (1 frame = 1/10 s)
+const LWA_SOLAR_UTIL_URL = 'https://github.com/ovro-eovsa/lwa-solar-util'
+const LWA_SOLAR_UTIL_NOTEBOOK_URL = 'https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook'
 
 function formatDate(d) {
   const y = d.getFullYear()
@@ -891,6 +893,27 @@ export default function App() {
             )}
           </div>
         )}
+        <p className="mt-4 pt-3 border-t border-gray-600 text-sm text-gray-400">
+          Working with downloaded data? See the{' '}
+          <a
+            href={LWA_SOLAR_UTIL_URL}
+            className="text-blue-400 hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            lwa-solar-util guide
+          </a>
+          {' '}and{' '}
+          <a
+            href={LWA_SOLAR_UTIL_NOTEBOOK_URL}
+            className="text-blue-400 hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            example notebooks
+          </a>
+          .
+        </p>
       </section>
 
       <section>
