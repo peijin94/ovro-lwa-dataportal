@@ -77,3 +77,36 @@ For a make-up run:
 cd /home/peijin/ovro-lwa-dataportal
 python3 dbscripts/generate_daily_movie.py --start 2026-05-14 --end 2026-05-17
 ```
+
+---
+
+# Crontab: daily Gemini AI summary ingest at 09:00 UTC
+
+Ingest hourly spectrogram summaries for **yesterday and today** (UTC) into `llm/ai_summary.db`.
+
+**Install:**
+
+1. Make the script executable:
+   ```bash
+   chmod +x /home/peijin/ovro-lwa-dataportal/llm/cron_gemini_ingest.sh
+   ```
+
+2. Add to your crontab (`crontab -e`). Use `CRON_TZ=UTC` and set `GEMINI_API_KEY`:
+   ```cron
+   CRON_TZ=UTC
+   0 9 * * * GEMINI_API_KEY=your_key_here flock -n /tmp/lwa_gemini_ingest.lock /home/peijin/ovro-lwa-dataportal/llm/cron_gemini_ingest.sh >> /home/peijin/ovro-lwa-dataportal/llm/run.log 2>&1
+   ```
+
+3. Uses the `solarml` conda Python by default (`google-genai`). Override with `PYTHON=...` if needed.
+
+4. One-time backfill (example: 2026-04-14 through today, skip dates already summarized):
+   ```bash
+   cd /home/peijin/ovro-lwa-dataportal
+   export GEMINI_API_KEY=...
+   /home/peijin/miniconda3/envs/solarml/bin/python llm/run_gemini_injest_all_lwa_db_dates.py \
+     --min-date 2026-04-14 \
+     --max-date "$(date -u +%Y-%m-%d)" \
+     --skip-existing
+   ```
+
+Logs: `llm/run.log` (stdout), `llm/run.err` (problem dates).

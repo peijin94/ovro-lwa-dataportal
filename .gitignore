@@ -53,3 +53,5 @@ Thumbs.db
 # Logs and local run
 *.log
 logs/
+llm/run.log
+llm/run.err
