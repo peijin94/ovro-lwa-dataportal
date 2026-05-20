@@ -55,3 +55,4 @@ Thumbs.db
 logs/
 llm/run.log
 llm/run.err
+llm/outputs/

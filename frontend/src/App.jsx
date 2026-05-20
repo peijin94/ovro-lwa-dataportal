@@ -499,14 +499,17 @@ export default function App() {
                   onLoadedMetadata={(e) => {
                     const v = e.target
                     const dur = v.duration
-                    if (isFinite(dur)) {
+                    if (isFinite(dur) && dur > 0) {
                       setMovieTotalFrames(Math.round(dur * MOVIE_FPS))
-                      setMovieCurrentFrame(0)
+                      const midTime = dur / 2
+                      v.currentTime = midTime
+                      setMovieCurrentFrame(Math.round(midTime * MOVIE_FPS))
+                      setSeekPercent(50)
                     } else {
                       setMovieTotalFrames(0)
                       setMovieCurrentFrame(0)
+                      setSeekPercent(0)
                     }
-                    setSeekPercent(0)
                     setMoviePlaying(false)
                   }}
                   onTimeUpdate={(e) => {
