@@ -26,7 +26,7 @@ from typing import List
 
 DEFAULT_GLOB = "/common/lwa/spec_v2/hourly/202604/01_*.png"
 DEFAULT_PROMPT_PATH = Path(__file__).resolve().parent / "prompt_example.txt"
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-3.5-flash"
 DEFAULT_TEMPERATURE = 0.3
 
 

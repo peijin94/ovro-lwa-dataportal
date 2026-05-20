@@ -478,7 +478,7 @@ export default function App() {
                 <img src={geminiLogo} alt="Gemini" className="mt-0.5 h-4 w-4 shrink-0" />
                 <span className="leading-tight">
                   <span className="block text-lg font-semibold text-sky-300">AI summary</span>
-                  <span className="block text-xs text-gray-400">Powered by gemini-3-flash-preview</span>
+                  <span className="block text-xs text-gray-400">Powered by gemini-3.5-flash</span>
                 </span>
               </button>
             </div>

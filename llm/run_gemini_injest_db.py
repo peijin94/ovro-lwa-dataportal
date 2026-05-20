@@ -30,7 +30,7 @@ from typing import List, Tuple
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PROMPT_PATH = Path(__file__).resolve().parent / "prompt_example.txt"
 DEFAULT_DB_PATH = Path(os.getenv("AI_SUMMARY_DB_PATH", str(REPO_ROOT / "llm" / "ai_summary.db")))
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-3.5-flash"
 DEFAULT_TEMPERATURE = 0.3
 SPEC_HOURLY_ROOT = "/common/lwa/spec_v2/hourly"
 
