@@ -52,7 +52,9 @@ def send_stage_email(
         f"  lwa-solar-util guide: {LWA_SOLAR_UTIL_URL}\n"
         f"  Example notebooks: {LWA_SOLAR_UTIL_NOTEBOOK_URL}\n\n"
         "This message was sent from an unmonitored address "
-        f"({SMTP_FROM}); replies are not read."
+        f"({SMTP_FROM}); replies are not read.\n\n"
+        "If you have any questions, please do not hesitate to reach out to "
+        "Peijin Zhang (peijinzhang8@gmail.com)."
     )
 
     msg = EmailMessage()

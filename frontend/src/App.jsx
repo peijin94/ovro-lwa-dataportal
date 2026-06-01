@@ -950,6 +950,14 @@ export default function App() {
           </div>
         )}
       </section>
+
+      <footer className="mt-10 pt-6 border-t border-gray-700 text-sm text-gray-400">
+        If you have any questions, please do not hesitate to reach out to{' '}
+        <a href="mailto:peijinzhang8@gmail.com" className="text-blue-400 hover:underline">
+          Peijin Zhang
+        </a>
+        {' '}(peijinzhang8@gmail.com).
+      </footer>
     </div>
   )
 }
