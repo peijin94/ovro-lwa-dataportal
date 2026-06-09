@@ -19,6 +19,8 @@ import geminiLogo from './assets/gemini.svg'
 const MOVIE_FPS = 10 // frames per second for step (1 frame = 1/10 s)
 const LWA_SOLAR_UTIL_URL = 'https://github.com/ovro-eovsa/lwa-solar-util'
 const LWA_SOLAR_UTIL_NOTEBOOK_URL = 'https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook'
+const ACKNOWLEDGMENT_TEXT =
+  'The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
 
 function formatDate(d) {
   const y = d.getFullYear()
@@ -45,6 +47,8 @@ export default function App() {
   const [queryWithAllDaySpectrum, setQueryWithAllDaySpectrum] = useState(false)
   const [queryResults, setQueryResults] = useState(null)
   const [queryLoading, setQueryLoading] = useState(false)
+  const [stageName, setStageName] = useState('')
+  const [stageInstitute, setStageInstitute] = useState('')
   const [stageEmail, setStageEmail] = useState('')
   const [stageLoading, setStageLoading] = useState(false)
   const [stageDone, setStageDone] = useState(null)
@@ -221,7 +225,7 @@ export default function App() {
 
   function handleStage(e) {
     e.preventDefault()
-    if (!stageEmail.trim() || !queryResults?.stage_available) return
+    if (!stageName.trim() || !stageInstitute.trim() || !stageEmail.trim() || !queryResults?.stage_available) return
     if (!stageTurnstileToken) {
       setStageTurnstileError('Please complete the verification.')
       return
@@ -234,6 +238,8 @@ export default function App() {
       data_type: queryDataType,
       cadence: queryCadence || null,
       with_all_day_spectrum: queryWithAllDaySpectrum,
+      name: stageName.trim(),
+      institute: stageInstitute.trim(),
       email: stageEmail.trim(),
       turnstile_token: stageTurnstileToken,
     })
@@ -861,24 +867,51 @@ export default function App() {
             </p>
             {!stageDone ? (
               <form onSubmit={handleStage} className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-end gap-2">
-                  <label className="sr-only" htmlFor="stage-email">Email</label>
-                  <input
-                    id="stage-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    className="bg-gray-800 text-white rounded px-3 py-2 border border-gray-600 w-56"
-                    value={stageEmail}
-                    onChange={(e) => setStageEmail(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
-                    disabled={!stageEmail.trim() || stageLoading}
-                  >
-                    {stageLoading ? 'Staging…' : 'Stage'}
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                  <div>
+                    <label htmlFor="stage-name" className="block text-sm text-gray-300 mb-1">Name</label>
+                    <input
+                      id="stage-name"
+                      type="text"
+                      placeholder="Your name"
+                      className="bg-gray-800 text-white rounded px-3 py-2 border border-gray-600 w-full"
+                      value={stageName}
+                      onChange={(e) => setStageName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="stage-institute" className="block text-sm text-gray-300 mb-1">Institute</label>
+                    <input
+                      id="stage-institute"
+                      type="text"
+                      placeholder="Your institute"
+                      className="bg-gray-800 text-white rounded px-3 py-2 border border-gray-600 w-full"
+                      value={stageInstitute}
+                      onChange={(e) => setStageInstitute(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="stage-email" className="block text-sm text-gray-300 mb-1">Email</label>
+                    <input
+                      id="stage-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      className="bg-gray-800 text-white rounded px-3 py-2 border border-gray-600 w-full max-w-md"
+                      value={stageEmail}
+                      onChange={(e) => setStageEmail(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
+                <button
+                  type="submit"
+                  className="self-start bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
+                  disabled={!stageName.trim() || !stageInstitute.trim() || !stageEmail.trim() || stageLoading}
+                >
+                  {stageLoading ? 'Staging…' : 'Stage'}
+                </button>
                 <div
                   ref={turnstileContainerRef}
                   className="cf-turnstile"
@@ -951,12 +984,15 @@ export default function App() {
         )}
       </section>
 
-      <footer className="mt-10 pt-6 border-t border-gray-700 text-sm text-gray-400">
+      <footer className="mt-10 pt-6 border-t border-gray-700 text-sm text-gray-400 space-y-3">
+        <p className="text-gray-500 italic">{ACKNOWLEDGMENT_TEXT}</p>
+        <p>
         If you have any questions, please do not hesitate to reach out to{' '}
         <a href="mailto:peijinzhang8@gmail.com" className="text-blue-400 hover:underline">
           Peijin Zhang
         </a>
         {' '}(peijinzhang8@gmail.com).
+        </p>
       </footer>
     </div>
   )

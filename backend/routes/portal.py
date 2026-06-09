@@ -45,6 +45,8 @@ class StageBody(BaseModel):
     data_type: str
     cadence: Optional[int] = None
     with_all_day_spectrum: bool = False
+    name: str = ""
+    institute: str = ""
     email: str = ""
     turnstile_token: str = ""
 
@@ -256,7 +258,11 @@ def stage_data(request: Request, background: BackgroundTasks, body: StageBody) -
     remote_ip = request.client.host if request.client else None
     if not _verify_turnstile(getattr(body, "turnstile_token", ""), remote_ip):
         raise HTTPException(status_code=400, detail="Turnstile verification failed")
-    if not body.email:
+    if not body.name.strip():
+        raise HTTPException(status_code=400, detail="Name is required for staging")
+    if not body.institute.strip():
+        raise HTTPException(status_code=400, detail="Institute is required for staging")
+    if not body.email.strip():
         raise HTTPException(status_code=400, detail="Email is required for staging")
 
     STAGE_MAX_FILES = 400
@@ -332,13 +338,17 @@ def stage_data(request: Request, background: BackgroundTasks, body: StageBody) -
             total_size_bytes,
             body.start_time,
             body.end_time,
+            body.name.strip(),
+            body.institute.strip(),
         )
         return {
             "stage_id": stage_id,
             "download_url": download_url,
             "file_count": file_count,
             "total_size_bytes": total_size_bytes,
-            "email": body.email or None,
+            "name": body.name.strip(),
+            "institute": body.institute.strip(),
+            "email": body.email.strip(),
         }
     except OSError as e:
         if work_dir.exists():

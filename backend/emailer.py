@@ -6,6 +6,10 @@ from backend.config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_
 
 LWA_SOLAR_UTIL_URL = "https://github.com/ovro-eovsa/lwa-solar-util"
 LWA_SOLAR_UTIL_NOTEBOOK_URL = "https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook"
+ACKNOWLEDGMENT_TEXT = (
+    "The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. "
+    "OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT."
+)
 
 
 def _format_bytes(n: int) -> str:
@@ -25,6 +29,8 @@ def send_stage_email(
     total_size_bytes: int,
     start_time: str,
     end_time: str,
+    name: str = "",
+    institute: str = "",
 ) -> None:
     """
     Send an email notifying the user that a staged dataset is ready.
@@ -43,6 +49,9 @@ def send_stage_email(
     subject = "OVRO-LWA staged data ready for download"
     body = (
         "Your requested OVRO-LWA data has been staged and is ready for download.\n\n"
+        f"Name: {name.strip() or '(not provided)'}\n"
+        f"Institute: {institute.strip() or '(not provided)'}\n"
+        f"Email: {to_email.strip()}\n\n"
         f"Time range (UTC): {start_time} – {end_time}\n"
         f"Number of files: {file_count}\n"
         f"Total size: {size_str}\n\n"
@@ -54,7 +63,8 @@ def send_stage_email(
         "This message was sent from an unmonitored address "
         f"({SMTP_FROM}); replies are not read.\n\n"
         "If you have any questions, please do not hesitate to reach out to "
-        "Peijin Zhang (peijinzhang8@gmail.com)."
+        "Peijin Zhang (peijinzhang8@gmail.com).\n\n"
+        f"Acknowledgment:\n{ACKNOWLEDGMENT_TEXT}"
     )
 
     msg = EmailMessage()
