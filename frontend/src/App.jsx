@@ -21,6 +21,13 @@ const LWA_SOLAR_UTIL_URL = 'https://github.com/ovro-eovsa/lwa-solar-util'
 const LWA_SOLAR_UTIL_NOTEBOOK_URL = 'https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook'
 const ACKNOWLEDGMENT_TEXT =
   'The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
+const SPEC_FITS_S3_BASE = 'https://ovro-lwa-solar.s3-us-west-2.amazonaws.com/spec_fits'
+
+function specFitsS3Url(dateIso) {
+  const yyyymmdd = dateIso.replace(/-/g, '')
+  const yyyy = dateIso.slice(0, 4)
+  return `${SPEC_FITS_S3_BASE}/${yyyy}/${yyyymmdd}.fits`
+}
 
 function formatDate(d) {
   const y = d.getFullYear()
@@ -44,7 +51,6 @@ export default function App() {
   const [queryEnd, setQueryEnd] = useState('')
   const [queryCadence, setQueryCadence] = useState(120)
   const [queryDataType, setQueryDataType] = useState('lev1_mfs')
-  const [queryWithAllDaySpectrum, setQueryWithAllDaySpectrum] = useState(false)
   const [queryResults, setQueryResults] = useState(null)
   const [queryLoading, setQueryLoading] = useState(false)
   const [stageName, setStageName] = useState('')
@@ -204,7 +210,6 @@ export default function App() {
       end_time: queryEnd.trim().replace('T', ' ').slice(0, 19),
       data_type: queryDataType,
       cadence: queryCadence || null,
-      with_all_day_spectrum: queryWithAllDaySpectrum,
     })
       .then((res) => {
         if (res.file_count > 400) {
@@ -237,7 +242,6 @@ export default function App() {
       end_time: queryResults.end_time,
       data_type: queryDataType,
       cadence: queryCadence || null,
-      with_all_day_spectrum: queryWithAllDaySpectrum,
       name: stageName.trim(),
       institute: stageInstitute.trim(),
       email: stageEmail.trim(),
@@ -430,7 +434,19 @@ export default function App() {
             {!loadingPreview && !dailySpec && !movieUrl && spectrumUrls.length === 0 && selectedDate && (
               <p className="text-gray-400">No data for this day.</p>
             )}
-            <h3 className="text-lg text-gray-200 mb-2">Daily spectrogram</h3>
+            <div className="mb-2 flex flex-wrap items-center gap-3">
+              <h3 className="text-lg text-gray-200">Daily spectrogram</h3>
+              {dailySpec && selectedDate && (
+                <a
+                  href={specFitsS3Url(selectedDate)}
+                  className="inline-block rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  download .fits
+                </a>
+              )}
+            </div>
             {dailySpec && (
               <div>
                 <img
@@ -818,16 +834,6 @@ export default function App() {
                 <option value="lev15_fch">lev15 fch</option>
               </select>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="with-all-day-spectrum"
-                className="rounded border-gray-600 bg-gray-800"
-                checked={queryWithAllDaySpectrum}
-                onChange={(e) => setQueryWithAllDaySpectrum(e.target.checked)}
-              />
-              <label htmlFor="with-all-day-spectrum" className="text-sm text-gray-300">With all day spectrum</label>
-            </div>
             <button
               type="submit"
               className="inline-flex items-center self-start bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"
@@ -848,6 +854,17 @@ export default function App() {
             </>
           )}
         </div>
+
+        {dailySpec && selectedDate && (
+          <a
+            href={specFitsS3Url(selectedDate)}
+            className="mt-4 inline-block rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+            target="_blank"
+            rel="noreferrer"
+          >
+            download daily spectrum (.fits)
+          </a>
+        )}
 
         {queryResults?.stage_available && (
           <div className="mt-4 rounded border border-gray-600 bg-gray-800/50 p-4">
