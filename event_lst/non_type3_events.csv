@@ -1,0 +1,201 @@
+date,event_num,begin_ut,peak_ut,end_ut,freq_range_mhz,peak_flux_sfu,type_notes
+2023-07-24,1,1735,1750,1815,30–80,>200,Strong Type II/IV complex
+2023-07-30,2,1750,1835,2359,30-80,500,Intense noise storm; continues into next day
+2023-08-18,3,1924,1932,1955,30–80,>1000,Major complex burst (Type II/IV)
+2023-08-19,3,1600,1640,1715,50-80,25,Noise storm / continuum
+2023-08-20,5,1945,2015,2115,30–80,>1000,Intense broadband emission / storm
+2023-08-26,1,1615,1730,2015,30–80,>100,Prolonged broadband emission (Type IV/storm)
+2023-08-27,5,2006,2007,2008,60–80,15,Brief burst group
+2023-09-01,2,0053,0056,0105,35-75,20,Drifting Type II-like bursts
+2023-09-07,4,1830,1915,2010,30-80,>100,Major complex burst (Type II/IV)
+2023-09-11,8,2232,2238,2250,30-60,200,Type II
+2023-09-17,2,1612,1618,1625,35–80,>1000,Type II burst
+2023-09-24,1,1507,1509,1513,35–65,200,Type II/IV complex
+2023-10-07,5,1805,1812,1830,30-80,>1000,Major Type II/IV complex
+2023-10-08,2,1805,1810,1825,40–80,>100,Type II / drifting burst
+2023-10-14,1,2231,2231,2231,25–45,15,Isolated weak burst
+2023-10-27,1,1632,1633,1635,30–85,10,Weak impulsive spikes
+2023-11-12,1,1544,--,--,--,--,Solar tracking begins
+2023-11-27,1,1830,1832,1835,45–80,15,Drifting burst group (Type II/III)
+2023-11-27,2,1842,1846,1850,30–80,15,Drifting burst group (Type II/III)
+2023-12-01,5,2135,2210,2330,30–85,600,Type IV / Noise storm; strongly polarized
+2023-12-02,4,0034,0034,0035,45–85,10,Isolated weak burst
+2023-12-14,1,1700,1705,1730,25–85,>1000,Major broadband burst (Type II/IV)
+2023-12-14,2,1730,1800,2245,25–85,~500,Sustained polarized noise storm / continuum
+2023-12-20,1,1630,1730,1800,60-80,20,Weak noise storm / continuum
+2023-12-21,6,2302,2303,2305,30–60,30,Small burst group
+2023-12-24,1,1946,1947,1955,40–80,100,Complex burst with slow drift
+2023-12-25,4,2100,2155,2215,35–80+,50,Polarized noise storm
+2023-12-31,3,2142,2155,2215,30–85,>100,Strong Type II/IV complex
+2024-01-10,2,1915,1922,1935,30–55,40,Type II / complex drifting emission
+2024-01-10,3,1948,1954,2000,45–75,15,Type II burst
+2024-01-20,1,1610,1800,2100,60-80,15,Persistent noise storm
+2024-01-21,4,2130,2230,2359,30-80,40,Noise storm
+2024-01-24,1,1647,1650,1655,30–55,20,Slow-drifting burst
+2024-01-29,2,1635,1640,1645,45–85,20,Type II drift
+2024-02-04,4,2103,2108,2118,30-80,>100,Strong Type II burst
+2024-04-11,5,2348,0005,0025,20-85,100,Polarized storm / Type IV
+2024-04-12,3,1550,1605,1630,30–80,80,Noise storm / continuum
+2024-04-17,7,2024,2030,2045,25–65,50,Type II slow drift
+2024-04-21,9,2211,2213,2218,25–45,20,Type II / slow-drift burst
+2024-04-22,7,2110,2114,2135,20–80,>1000,Major event: Type II burst with intense broadband onset
+2024-04-23,5,1735,1737,1830,20–85,>1000,Major event: Type II and Type IV continuum
+2024-04-24,1,1416,1422,1435,30–85,>100,Complex Type II/IV burst
+2024-04-24,2,1500,1645,1900,30–85,~100,Prolonged noise storm
+2024-05-03,7,2022,2035,2055,20–85,200,Type II burst
+2024-05-05,2,1530,1630,1810,30–85,50,Noise storm with strong Stokes V
+2024-05-09,4,1750,1810,1830,20–85,1000,Noise storm / continuum
+2024-05-10,4,0113,0120,0150,20-85,>1000,Major broadband emission (Type II/IV)
+2024-05-11,4,1730,1810,1930,20–85,300,Extended noise storm / bright emission
+2024-05-15,3,1628,1629,1631,30-80,100,Strong isolated burst
+2024-05-15,8,0007,0008,0009,30-60,30,Isolated burst (May 16)
+2024-05-19,6,1830,2030,2130,30-85,20,Polarized noise storm
+2024-05-22,2,1555,1610,1630,30–80,~25,Noise storm segment
+2024-05-22,5,2130,2210,2300,40–80,~30,Noise storm
+2024-05-27,4,1748,1750,1810,28-85,200,Type II / IV complex
+2024-05-29,2,1448,1453,1710,25–85,>100,Strong Type IV / polarized noise storm
+2024-06-01,2,1920,1925,1935,40-80,~20,Type II burst
+2024-06-01,3,2001,2003,2015,20-80,>100,Strong complex Type II/IV burst
+2024-06-01,4,2015,2100,0035,20-80,~100,Sustained Type IV storm; decayed to ~10 sfu after 22:30
+2024-06-03,2,1530,1630,1800,60–80,~30,Noise storm / continuum
+2024-06-10,2,1835,1845,1915,20-80,~60,Slow drift (Type II) and continuum
+2024-06-13,1,0156,0157,0158,20–40,~15,Weak isolated burst
+2024-06-18,2,1753,2130,2300,20–85,100,Noise storm / Type IV continuum
+2024-06-21,7,2344,2355,0020,20-85,800,Type II/IV complex
+2024-07-04,4,2005,2012,2035,20–85,~60,Complex drifting emission
+2024-07-05,3,1905,1910,1920,30–75,20,Type II slow drift
+2024-07-19,3,1817,1817,1818,30-60,15,Slow-drift burst
+2024-07-23,1,1412,1418,1445,30–80,200,Complex drifting emission
+2024-07-24,3,1714,1717,1745,20-80,>500,Complex Type II/IV event
+2024-07-24,4,1816,1818,1825,25-75,100,Type II drifting burst
+2024-07-25,1,1531,1535,1630,20-80,>100,Type II/IV complex
+2024-07-30,6,1930,1931,1945,15-80,600,Complex burst (Type II/IV)
+2024-07-31,3,1820,1825,1910,20–80,500,Complex Type II/IV event
+2024-07-31,5,0147,0150,0200,20–80,800,Intense Type II/IV event
+2024-08-04,8,2215,2225,2240,30-85,100,Type II (slow drift)
+2024-08-05,3,1530,1538,1555,20-80,100,Type II burst with multiple lanes
+2024-08-06,4,1910,1925,1945,30–80,80,Polarized storm / continuum
+2024-08-08,3,2015,2130,2359,30-80,100,Sustained noise storm
+2024-08-08,5,0032,0040,0050,75-30,60,Type II slow-drift burst
+2024-08-09,8,2124,2126,2130,50-80,80,Type II candidate
+2024-08-09,9,2200,2230,0030,30-80,150,Noise storm / continuum
+2024-08-24,9,2357,2358,0000,30–80,100,Type II / complex drift
+2024-08-25,4,1945,2005,2115,30–80,30,Polarized noise storm
+2024-08-30,2,1525,1840,2112,20–85,~150,Sustained Type I/III noise storm
+2024-09-09,8,2345,0037,0110,30-85,300,Complex storm / Type II candidate
+2024-09-14,2,1747,1748,1750,60–70,15,Polarized emission patch
+2024-09-17,4,1802,1803,1804,55–80,25,Narrowband burst
+2024-10-15,2,1806,1815,1830,25–85,150,Complex Type II/IV event
+2024-10-29,3,1655,2005,2030,40-85,50,Noise storm (Type I/III)
+2024-11-05,1,1525,1532,1545,35–85,100,Complex emission / Type II/III
+2024-11-08,1,1558,1600,1602,35–80,30,Weak broadband emission
+2024-11-10,2,2338,2339,2340,35–85,>100,Strong broadband burst
+2024-11-14,1,1554,1554,1555,35–85,10,Isolated spike
+2024-11-21,3,1807,1812,1820,35–80,50,Complex emission / slow-drift feature
+2024-11-25,3,2040,2045,2105,30-85,>200,Strong complex burst
+2024-11-29,1,1609,1612,1622,30-80,40,Type II/IV slow drift
+2024-11-29,2,1812,1815,1825,30-70,25,Type II/IV slow drift
+2024-12-07,2,2005,2018,2025,30–85,30,Complex activity with slow-drifting features
+2024-12-29,3,1755,1850,2045,30–85,120,Sustained noise storm; strong Stokes V
+2025-01-03,4,1923,1924,1925,30–45,15,Slow-drifting burst
+2025-01-06,1,1625,1630,1700,35–85,200,Complex drifting emission (Type II/IV)
+2025-01-12,2,1901,1902,1903,30-70,10,Isolated weak spike
+2025-01-15,7,2316,2318,2320,45–65,30,Drifting emission (Type II/IV)
+2025-01-23,2,1645,1655,1710,30–85,50,Type II burst
+2025-01-24,2,1623,1624,1630,45–85,30,Drifting burst
+2025-01-27,4,2056,2056,2057,30–70,15,Isolated spike
+2025-01-27,5,2117,2117,2118,30–85,20,Isolated spike
+2025-02-04,2,2313,2316,2321,25-65,20,Slow drift burst (Type II candidate)
+2025-02-11,4,1822,1828,1838,25–80,300,Type II burst
+2025-02-14,6,2103,2110,2118,30-65,80,Type II slow drift
+2025-02-14,8,2120,2200,2330,30-80,30,Polarized noise storm
+2025-02-18,1,1631,1631,1631,30-80,~10,Narrow broadband spike
+2025-02-18,2,2042,2042,2042,30-80,>50,Strong broadband spike
+2025-02-18,3,2319,2319,2319,30-80,~10,Narrow broadband spike
+2025-03-06,1,1640,1950,0055,60–85,15,Sustained noise storm; strongly RCP polarized
+2025-03-09,1,1515,2030,0100,40-85,40,Persistent noise storm; strong Stokes V
+2025-03-25,1,1540,1540,1541,35–80,10,Weak isolated burst
+2025-03-25,2,1639,1639,1640,35–80,10,Weak isolated burst
+2025-03-28,1,1514,1535,1625,30–85,>100,Strong broadband continuum / Type IV
+2025-04-08,4,2200,2300,2319,50–85,30,Sustained noise storm; strong Stokes V
+2025-04-11,4,1858,1925,2130,30–80,>1000,Intense noise storm; strong Stokes V
+2025-04-23,1,1544,1544,1545,18–25,~12,Weak low-frequency burst
+2025-04-30,3,1538,1545,1610,30–80,20,Type II/IV fragment
+2025-05-03,4,2300,0015,0050,20–85,15,Group of drifting bursts
+2025-05-07,1,1405,1410,1445,20-45,~10,Group of weak bursts
+2025-05-27,1,1355,1525,1540,50-85,25,Persistent Type I/III noise storm group
+2025-06-01,1,1400,1900,2359,45–85,50,Persistent Type I noise storm
+2025-06-15,3,1835,1904,1915,20–80,>100,Polarized continuum (Type IV) with embedded bursts
+2025-06-15,4,2048,2055,2135,20–80,>100,Sustained polarized broadband emission
+2025-06-15,7,0143,0145,0205,20–85,>500,Major complex event; includes possible Type II drift
+2025-06-20,4,2103,2104,2105,18–80+,150,Strong burst within storm
+2025-06-24,3,2319,2322,2324,30–85,10,Weak burst group
+2025-07-24,1,1425,1505,1610,50–80,50,Noise storm; strong Stokes V
+2025-07-27,7,2030,2140,2355,20–85,500,Sustained noise storm
+2025-07-28,11,2310,2311,2355,18–85,150,Strong bursts and storm activity
+2025-08-05,1,1552,1615,1822,20–80,>100,Type IV continuum and Type II burst
+2025-08-17,2,2035,2041,2046,25–75,50,Type II drifting event
+2025-08-30,2,1935,2100,2359,30-80,>1000,Strong broadband continuum (Type IV)
+2025-09-26,4,2005,2010,2025,40-80,>100,Type II burst
+2025-10-02,1,1513,1517,1522,30–55,20,Drifting burst (Type II/III)
+2025-10-06,3,1915,1922,1928,40–85,15,Weak broadband enhancement
+2025-10-15,2,1600,1645,1715,50–85,30,Diffuse continuum emission
+2025-10-15,6,2135,2245,2300,60–85,50,Noise storm / high-frequency continuum
+2025-10-17,1,1725,1730,1735,40–85,20,Broad continuum emission
+2025-10-18,6,2132,2145,2158,35–75,40,Polarized storm / Type IV
+2025-10-23,2,1545,1552,1600,30–65,~15,Type II candidate (slow drift)
+2025-11-05,2,1645,1652,1715,30-65,30,Type II burst
+2025-11-06,1,1540,1543,1547,30-60,20,Slow-drifting burst
+2025-11-06,2,1702,1708,1715,25-50,30,Type II burst
+2025-11-06,5,1830,2030,2215,35-85,300,Intense Type IV / Noise storm
+2025-11-18,1,2022,2025,2030,30-80,>100,Strong complex burst (Type II/IV)
+2025-11-18,2,2040,2042,2045,30-50,20,Type II drift
+2025-11-23,3,2310,2314,2320,30-45,40,Type II burst
+2025-11-28,2,2225,2230,2240,25–85,40,Type II slow-drift burst
+2025-12-05,5,1920,1940,2100,30–70,20,Polarized noise storm
+2025-12-06,2,2034,2045,2200,20–85,>1000,Major Type II/IV complex; saturates scale
+2025-12-07,3,1733,1736,1748,40–75,15,Weak drifting emission
+2025-12-19,1,1704,1704,1705,55–85,~10,Weak isolated burst
+2026-01-04,1,2026,2026,2027,60–75,15,Weak isolated burst
+2026-01-05,2,1833,1837,1841,25–85,50,Complex drifting burst group
+2026-01-05,4,2052,2105,2115,30–85,15,Polarized noise storm / continuum
+2026-01-11,5,2144,2149,2153,20–45,20,Low-frequency burst group
+2026-01-19,1,1615,1622,1645,22–55,20,Slow-drifting feature
+2026-01-19,3,1832,1833,1836,20–55,80,Strong impulsive burst
+2026-01-23,2,1715,1725,1740,25–75,50,Type II burst
+2026-01-23,3,1815,2130,2359,60–85,100,Noise storm / continuum
+2026-01-24,2,1805,1835,1915,70-85,30,High-frequency storm group
+2026-02-09,2,1756,1758,1802,20-60,20,Type II
+2026-02-09,3,1826,1828,1835,20-75,25,Type II
+2026-02-19,1,1801,1801,1802,20–85,~15,Isolated impulsive burst
+2026-02-19,2,2214,2215,2216,30–85,~20,Isolated impulsive burst
+2026-03-06,1,1645,2000,2210,30-80,100,Noise storm
+2026-03-22,3,1840,1915,2130,60–85,100,Noise storm (Type I/IV)
+2026-03-23,3,1907,1908,1909,20–45,~15,Isolated spike
+2026-03-28,6,2215,2245,2315,35–80,40,Polarized noise storm
+2026-03-30,3,0056,0057,0059,15-80,300,Strong complex burst
+2026-04-01,9,2304,2310,2315,25–65,100,Type II burst
+2026-04-02,3,1835,1905,1950,20–85,80,Noise storm; strong circular polarization
+2026-04-07,2,1754,1755,1756,35–50,10,Weak isolated burst
+2026-04-24,4,1820,1930,2135,20-80,>100,Noise storm / Type IV continuum
+2026-04-26,3,2305,2308,2315,40–75,25,Slow-drifting burst (Type II/IV candidate).
+2026-04-27,8,2218,2221,2225,35–55,~20,Complex drifting emission
+2026-05-06,3,1730,1830,2130,20-80,~100,Intense noise storm / Type IV
+2026-05-06,4,0105,0125,0145,30-80,20,Type II burst
+2026-05-12,1,1457,1458,1500,25–85,>200,Strong broadband burst
+2026-05-16,2,1608,1715,2359,20-85,300,"Intense, long-duration noise storm"
+2026-05-18,3,1625,1655,1715,20–80,>500,Strong Type IV continuum / storm
+2026-05-23,8,2040,2150,2230,20–85,>30,Continued noise storm activity
+2026-05-25,5,2211,2213,2220,20–80,>200,Intense broadband burst within the storm
+2026-05-27,6,2040,2041,2047,20–85,>100,"Strong, highly structured complex burst (likely Type II)"
+2026-05-30,1,1400,1740,2100,45–85,~10,Type I noise storm; highly right-circularly polarized
+2026-06-02,6,1651,1653,1656,30–80,~50,Slowly drifting emission (Type II/IV candidate)
+2026-06-06,2,1440,1510,1830,30–85,~10,"Long-lasting, strongly right-hand polarized (V/I > +0.4) Type I noise storm."
+2026-06-09,5,1558,1604,1607,25–80,>10,Type II burst with fundamental and harmonic bands
+2026-06-12,1,1420,1730,0215,40–85,~30,"Solar noise storm, highly polarized"
+2026-06-12,4,1922,1930,1935,25–80,~30,Structured drifting emission / Type II-like
+2026-06-15,4,1815,1850,2000,20–80,~40,Polarized noise storm (LCP)
+2026-06-15,9,2300,2345,0115,20–75,~30,Polarized noise storm (LCP)
+2026-06-17,4,1509,1515,1523,20–80,20,Type II slow-drifting burst with fundamental/harmonic structure
+2026-06-17,8,1835,1848,1900,35–60,20,Type IV / continuum emission
+2026-06-21,3,1925,1935,1950,22–85,~15,Type II slow-drift burst with harmonic structure
