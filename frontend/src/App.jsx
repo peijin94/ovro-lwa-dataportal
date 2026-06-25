@@ -19,6 +19,8 @@ import geminiLogo from './assets/gemini.svg'
 const MOVIE_FPS = 10 // frames per second for step (1 frame = 1/10 s)
 const LWA_SOLAR_UTIL_URL = 'https://github.com/ovro-eovsa/lwa-solar-util'
 const LWA_SOLAR_UTIL_NOTEBOOK_URL = 'https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook'
+const AWS_DATA_MIRROR_URL = 'https://registry.opendata.aws/ovrolwasolar/'
+const SOLAR_RADIO_CLOUD_GUIDE_URL = 'https://pjzhang.cc/solarradiocloud/'
 const ACKNOWLEDGMENT_TEXT =
   'The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
 const SPEC_FITS_S3_BASE = 'https://ovro-lwa-solar.s3-us-west-2.amazonaws.com/spec_fits'
@@ -964,6 +966,27 @@ export default function App() {
             rel="noreferrer"
           >
             example notebooks
+          </a>
+          .
+        </p>
+        <p className="mt-3 pt-3 border-t border-gray-600 text-sm text-gray-400">
+          Easier access with cloud based data mirror:{' '}
+          <a
+            href={AWS_DATA_MIRROR_URL}
+            className="text-blue-400 hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            AWS repository
+          </a>
+          {' · '}
+          <a
+            href={SOLAR_RADIO_CLOUD_GUIDE_URL}
+            className="text-blue-400 hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            quick guide
           </a>
           .
         </p>
