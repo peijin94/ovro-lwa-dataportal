@@ -355,10 +355,12 @@ export default function App() {
     const dateStr = `${y}-${m}-${d}`
     const yearMap = coverageDataByYear[year]
     const rec = yearMap ? yearMap[dateStr] : null
-    if (!rec) return 'none'
+    const todayStr = new Date().toISOString().slice(0, 10) // UTC YYYY-MM-DD
+    const isFuture = dateStr > todayStr
+    if (!rec) return isFuture ? 'future' : 'none'
     const specCount = (rec.n_spec_daily || 0) + (rec.n_spec_daily_fits || 0)
     const imgCount = (rec.n_img_lev1_mfs || 0) + (rec.n_img_lev1_fch || 0)
-    if (specCount <= 0 && imgCount <= 0) return 'none'
+    if (specCount <= 0 && imgCount <= 0) return isFuture ? 'future' : 'none'
     if (specCount > 0 && imgCount <= 0) return 'spec_only'
     if (imgCount > 0 && imgCount < 300) return 'few_images'
     if (imgCount >= 300) return 'many_images'
@@ -630,7 +632,7 @@ export default function App() {
               <div>
                 <h2 className="text-lg font-semibold text-white">Data coverage</h2>
                 <p className="text-xs text-gray-400">
-                  Calendar colors: gray = no data, orange = spectrum only, yellow = &lt; 300 images, green = ≥ 300 images.
+                  Calendar colors: red × = no data, gray = future, orange = spectrum only, yellow = &lt; 300 images, green = ≥ 300 images.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -690,8 +692,9 @@ export default function App() {
                         ))}
                         {days.map((day) => {
                           const level = coverageLevelForDate(year, monthIdx, day)
-                          let cls = 'bg-gray-800 text-gray-300'
-                          if (level === 'spec_only') cls = 'bg-orange-500 text-gray-900'
+                          let cls = 'coverage-none'
+                          if (level === 'future') cls = 'bg-gray-800 text-gray-300'
+                          else if (level === 'spec_only') cls = 'bg-orange-500 text-gray-900'
                           else if (level === 'few_images') cls = 'bg-yellow-400 text-gray-900'
                           else if (level === 'many_images') cls = 'bg-green-500 text-gray-900'
                           const y = String(year).padStart(4, '0')
