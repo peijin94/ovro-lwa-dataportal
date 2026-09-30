@@ -284,8 +284,6 @@ def _refresh_datacount(conn: sqlite3.Connection, start_date_iso: str) -> None:
         "spec_hourly",
         "img_lev1_mfs",
         "img_lev1_fch",
-        "img_lev15_mfs",
-        "img_lev15_fch",
         "movies",
     ]
     count_cols = [
@@ -294,8 +292,6 @@ def _refresh_datacount(conn: sqlite3.Connection, start_date_iso: str) -> None:
         "n_spec_hourly",
         "n_img_lev1_mfs",
         "n_img_lev1_fch",
-        "n_img_lev15_mfs",
-        "n_img_lev15_fch",
         "n_movies",
     ]
     dates = set()
@@ -316,10 +312,8 @@ def _refresh_datacount(conn: sqlite3.Connection, start_date_iso: str) -> None:
                 n_spec_hourly,
                 n_img_lev1_mfs,
                 n_img_lev1_fch,
-                n_img_lev15_mfs,
-                n_img_lev15_fch,
                 n_movies
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             row,
         )
@@ -366,13 +360,7 @@ def main() -> None:
             conn, start_date_iso, start_ymd, "lev1", "mfs", "img_lev1_mfs", args.verbose
         )
         _append_img_table(
-            conn, start_date_iso, start_ymd, "lev15", "mfs", "img_lev15_mfs", args.verbose
-        )
-        _append_img_table(
             conn, start_date_iso, start_ymd, "lev1", "fch", "img_lev1_fch", args.verbose
-        )
-        _append_img_table(
-            conn, start_date_iso, start_ymd, "lev15", "fch", "img_lev15_fch", args.verbose
         )
         _append_movies(conn, start_date_iso, start_ymd, args.verbose)
         _refresh_datacount(conn, start_date_iso)

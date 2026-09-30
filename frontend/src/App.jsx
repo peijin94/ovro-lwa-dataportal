@@ -214,7 +214,12 @@ export default function App() {
       cadence: queryCadence || null,
     })
       .then((res) => {
-        if (res.file_count > 400) {
+        const limit = res.max_files ?? 400
+        if (res.truncated) {
+          window.alert(
+            `Time range too large: more than ${limit} files match. Narrow the range or increase the cadence.`
+          )
+        } else if (res.file_count > limit) {
           window.alert('Too many files in one request')
         }
         setQueryResults(res)
@@ -352,11 +357,7 @@ export default function App() {
     const rec = yearMap ? yearMap[dateStr] : null
     if (!rec) return 'none'
     const specCount = (rec.n_spec_daily || 0) + (rec.n_spec_daily_fits || 0)
-    const imgCount =
-      (rec.n_img_lev1_mfs || 0) +
-      (rec.n_img_lev1_fch || 0) +
-      (rec.n_img_lev15_mfs || 0) +
-      (rec.n_img_lev15_fch || 0)
+    const imgCount = (rec.n_img_lev1_mfs || 0) + (rec.n_img_lev1_fch || 0)
     if (specCount <= 0 && imgCount <= 0) return 'none'
     if (specCount > 0 && imgCount <= 0) return 'spec_only'
     if (imgCount > 0 && imgCount < 300) return 'few_images'
@@ -477,18 +478,6 @@ export default function App() {
                   <span className="inline-flex items-center rounded-full bg-gray-700 px-2 py-0.5 text-gray-100">
                     <span className="mr-1 inline-block h-2 w-2 rounded-full bg-green-400" />
                     {daySummary.n_img_lev1_fch} lev1 fch hdf
-                  </span>
-                )}
-                {daySummary.n_img_lev15_mfs > 0 && (
-                  <span className="inline-flex items-center rounded-full bg-gray-700 px-2 py-0.5 text-gray-100">
-                    <span className="mr-1 inline-block h-2 w-2 rounded-full bg-green-400" />
-                    {daySummary.n_img_lev15_mfs} lev15 mfs hdf
-                  </span>
-                )}
-                {daySummary.n_img_lev15_fch > 0 && (
-                  <span className="inline-flex items-center rounded-full bg-gray-700 px-2 py-0.5 text-gray-100">
-                    <span className="mr-1 inline-block h-2 w-2 rounded-full bg-green-400" />
-                    {daySummary.n_img_lev15_fch} lev15 fch hdf
                   </span>
                 )}
               </div>
@@ -832,8 +821,6 @@ export default function App() {
               >
                 <option value="lev1_mfs">lev1 mfs</option>
                 <option value="lev1_fch">lev1 fch</option>
-                <option value="lev15_mfs">lev15 mfs</option>
-                <option value="lev15_fch">lev15 fch</option>
               </select>
             </div>
             <button
@@ -851,6 +838,13 @@ export default function App() {
               {!queryResults.error && (
                 <p className="text-gray-300 mb-1">
                   {queryResults.file_count ?? 0} file(s), total {formatBytes(queryResults.total_size_bytes ?? 0)}
+                </p>
+              )}
+              {!queryResults.error && queryResults.truncated && (
+                <p className="text-amber-300 mb-1">
+                  Time range too large: only the start of the range was counted (limit{' '}
+                  {queryResults.max_files ?? 400} files per staged request). Narrow the time
+                  range or increase the cadence to download.
                 </p>
               )}
             </>

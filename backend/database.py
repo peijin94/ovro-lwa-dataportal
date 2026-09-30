@@ -89,8 +89,6 @@ def get_datacount_for_date(date: str) -> Optional[dict]:
                 n_spec_hourly,
                 n_img_lev1_mfs,
                 n_img_lev1_fch,
-                n_img_lev15_mfs,
-                n_img_lev15_fch,
                 n_movies
             FROM datacount
             WHERE date = ?
@@ -107,9 +105,7 @@ def get_datacount_for_date(date: str) -> Optional[dict]:
             "n_spec_hourly": row[3],
             "n_img_lev1_mfs": row[4],
             "n_img_lev1_fch": row[5],
-            "n_img_lev15_mfs": row[6],
-            "n_img_lev15_fch": row[7],
-            "n_movies": row[8],
+            "n_movies": row[6],
         }
     finally:
         conn.close()
@@ -130,8 +126,6 @@ def get_datacount_for_year(year: int) -> List[dict]:
                 n_spec_hourly,
                 n_img_lev1_mfs,
                 n_img_lev1_fch,
-                n_img_lev15_mfs,
-                n_img_lev15_fch,
                 n_movies
             FROM datacount
             WHERE date LIKE ?
@@ -150,9 +144,7 @@ def get_datacount_for_year(year: int) -> List[dict]:
                     "n_spec_hourly": row[3],
                     "n_img_lev1_mfs": row[4],
                     "n_img_lev1_fch": row[5],
-                    "n_img_lev15_mfs": row[6],
-                    "n_img_lev15_fch": row[7],
-                    "n_movies": row[8],
+                    "n_movies": row[6],
                 }
             )
         return results
@@ -165,23 +157,25 @@ def query_imaging(
     end_time: str,
     data_type: str,
     cadence_seconds: Optional[int] = None,
-) -> List[Tuple[str, str]]:
+    max_rows: Optional[int] = None,
+) -> Tuple[List[Tuple[str, str]], bool]:
     """
-    Return list of (datetime, full_path) for the given data_type
-    (lev1_mfs, lev15_fch, etc.) with datetime in [start_time, end_time].
-    Times are 'YYYY-MM-DD HH:MM:SS'. If cadence_seconds is given and >= 10,
-    thin to at most one row per cadence_seconds (by datetime).
+    Return (rows, truncated) for the given data_type (lev1_mfs, lev1_fch) with
+    datetime in [start_time, end_time]. Times are 'YYYY-MM-DD HH:MM:SS'.
+    If cadence_seconds is given and >= 10, thin to at most one row per
+    cadence_seconds (by datetime).
+
+    max_rows caps how many database rows are read (one row = one file on the
+    NAS). When the cap is hit the scan stops, `truncated` is True and the
+    returned rows cover only the start of the requested range, so callers must
+    treat the result as incomplete.
     """
 
     def datetime_to_full_path(prefix_dir: str, datetimes: List[str], dtype: str) -> List[str]:
         """Map imaging datetime strings to full NAS paths using naming convention."""
         paths: List[str] = []
-        if dtype in ("lev1_mfs", "lev1_fch"):
-            level = "lev1"
-        elif dtype in ("lev15_mfs", "lev15_fch"):
-            level = "lev15"
-        else:
-            level = "lev1"
+        # Only level-1 products are indexed (see config.DATA_TYPE_TO_TABLE).
+        level = "lev1"
         kind = "mfs" if "mfs" in dtype else "fch"
 
         for dts in datetimes:
@@ -204,23 +198,30 @@ def query_imaging(
 
     table = DATA_TYPE_TO_TABLE.get(data_type)
     if not table:
-        return []
+        return [], False
     conn = get_connection()
     try:
         cur = conn.cursor()
         # Imaging tables store only (date, datetime); reconstruct full paths from datetime.
-        cur.execute(
-            f"SELECT datetime FROM {table} WHERE datetime >= ? AND datetime <= ? ORDER BY datetime",
-            (start_time, end_time),
-        )
+        sql = f"SELECT datetime FROM {table} WHERE datetime >= ? AND datetime <= ? ORDER BY datetime"
+        params: List[object] = [start_time, end_time]
+        if max_rows is not None:
+            # Read one extra row so an exact-limit result is not reported as truncated.
+            sql += " LIMIT ?"
+            params.append(int(max_rows) + 1)
+        cur.execute(sql, params)
         dts_list = [row[0] for row in cur.fetchall()]
+        truncated = False
+        if max_rows is not None and len(dts_list) > max_rows:
+            truncated = True
+            dts_list = dts_list[:max_rows]
         if not dts_list:
-            return []
+            return [], False
         paths = datetime_to_full_path(IMG_ROOT, dts_list, data_type)
         rows: List[Tuple[str, str]] = list(zip(dts_list, paths))
         # Cadence: if < 10s take all; if >= 10s thin by cadence
         if not cadence_seconds or cadence_seconds < 10:
-            return rows
+            return rows, truncated
         result: List[Tuple[str, str]] = []
         last_ts: Optional[float] = None
         for dts, dir_path in rows:
@@ -232,6 +233,6 @@ def query_imaging(
                     last_ts = ts
             except ValueError:
                 result.append((dts, dir_path))
-        return result
+        return result, truncated
     finally:
         conn.close()

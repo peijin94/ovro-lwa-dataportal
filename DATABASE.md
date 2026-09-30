@@ -9,7 +9,7 @@ This document describes the SQLite database used by the OVRO-LWA data portal: ta
 The database catalogs **spectrum**, **imaging**, and **movies** on the NAS. It provides:
 
 - **Spectrum**: daily and hourly spectrum image paths.
-- **Imaging**: HDF image files by data level (`lev1`, `lev15`) and type (`fch`, `mfs`).
+- **Imaging**: HDF image files by data level (`lev1`) and type (`fch`, `mfs`).
 - **Movies**: daily synoptic MFS movie files (one MP4 per date).
 - **datacount**: Per-date counts of files in each category (derived from the above tables).
 
@@ -22,13 +22,13 @@ Default database file: `lwa_data.db` (can be overridden with the `LWA_DB_PATH` e
 Run the build script from the project root:
 
 ```bash
-python build_db_fnames.py
+python dbscripts/build_db_fnames.py
 ```
 
 Or with a custom path:
 
 ```bash
-LWA_DB_PATH=/path/to/lwa_data.db python build_db_fnames.py
+LWA_DB_PATH=/path/to/lwa_data.db python dbscripts/build_db_fnames.py
 ```
 
 The script **drops and recreates** all tables on each run. It scans the NAS paths below and populates the tables. If an imaging row would violate the UNIQUE constraint on `datetime`, the script skips the insert and prints both the pre-existing path and the conflicting path.
@@ -38,7 +38,8 @@ The script **drops and recreates** all tables on each run. It scans the NAS path
 | Product   | Root path                              |
 |----------|----------------------------------------|
 | Spectrum | `/common/lwa/spec_v2`                  |
-| Imaging  | `/nas8/lwa/hdf/slow`                   |
+| Spectrum FITS | `/nas8/lwa/spec_v2/fits`          |
+| Imaging  | `/nas7/ovro-lwa-data/hdf/slow`         |
 | Movies   | `/common/webplots/lwa-data/qlook_daily/movies` |
 
 ---
@@ -123,29 +124,16 @@ Imaging files: level 1, MFS (multi-frequency synthesis).
 |------------|--------|---------------|-------------|
 | `date`     | TEXT   | NOT NULL      | Calendar date, `YYYY-MM-DD`. |
 | `datetime` | TEXT   | NOT NULL, UNIQUE | Timestamp of the file, `YYYY-MM-DD HH:MM:SS`. |
-| `dir`      | TEXT   | NOT NULL      | Full path to the HDF file on the NAS. |
+
+The full file path is **not** stored; it is reconstructed from `datetime` with the
+naming convention below (`backend/database.py`).
 
 **File convention:**  
-`/nas8/lwa/hdf/slow/lev1/yyyy/mm/dd/ovro-lwa.lev1_mfs_10s.yyyy-mm-ddTHHMMSSZ.image_I.hdf`
+`/nas7/ovro-lwa-data/hdf/slow/lev1/yyyy/mm/dd/ovro-lwa-352.lev1_mfs_10s.yyyy-mm-ddTHHMMSSZ.image_I.hdf`
 
 ---
 
-### 4. `img_lev15_mfs`
-
-Imaging files: level 1.5, MFS.
-
-| Column     | Type   | Constraints   | Description |
-|------------|--------|---------------|-------------|
-| `date`     | TEXT   | NOT NULL      | Calendar date, `YYYY-MM-DD`. |
-| `datetime` | TEXT   | NOT NULL, UNIQUE | Timestamp of the file, `YYYY-MM-DD HH:MM:SS`. |
-| `dir`      | TEXT   | NOT NULL      | Full path to the HDF file on the NAS. |
-
-**File convention:**  
-`/nas8/lwa/hdf/slow/lev15/yyyy/mm/dd/ovro-lwa.lev15_mfs_10s.yyyy-mm-ddTHHMMSSZ.image_I.hdf`
-
----
-
-### 5. `img_lev1_fch`
+### 4. `img_lev1_fch`
 
 Imaging files: level 1, FCH (frequency channel).
 
@@ -153,29 +141,16 @@ Imaging files: level 1, FCH (frequency channel).
 |------------|--------|---------------|-------------|
 | `date`     | TEXT   | NOT NULL      | Calendar date, `YYYY-MM-DD`. |
 | `datetime` | TEXT   | NOT NULL, UNIQUE | Timestamp of the file, `YYYY-MM-DD HH:MM:SS`. |
-| `dir`      | TEXT   | NOT NULL      | Full path to the HDF file on the NAS. |
+
+The full file path is **not** stored; it is reconstructed from `datetime` with the
+naming convention below (`backend/database.py`).
 
 **File convention:**  
-`/nas8/lwa/hdf/slow/lev1/yyyy/mm/dd/ovro-lwa.lev1_fch_10s.yyyy-mm-ddTHHMMSSZ.image_I.hdf`
+`/nas7/ovro-lwa-data/hdf/slow/lev1/yyyy/mm/dd/ovro-lwa-352.lev1_fch_10s.yyyy-mm-ddTHHMMSSZ.image_I.hdf`
 
 ---
 
-### 6. `img_lev15_fch`
-
-Imaging files: level 1.5, FCH.
-
-| Column     | Type   | Constraints   | Description |
-|------------|--------|---------------|-------------|
-| `date`     | TEXT   | NOT NULL      | Calendar date, `YYYY-MM-DD`. |
-| `datetime` | TEXT   | NOT NULL, UNIQUE | Timestamp of the file, `YYYY-MM-DD HH:MM:SS`. |
-| `dir`      | TEXT   | NOT NULL      | Full path to the HDF file on the NAS. |
-
-**File convention:**  
-`/nas8/lwa/hdf/slow/lev15/yyyy/mm/dd/ovro-lwa.lev15_fch_10s.yyyy-mm-ddTHHMMSSZ.image_I.hdf`
-
----
-
-### 7. `movies`
+### 5. `movies`
 
 One row per **daily** synoptic MFS movie (MP4). At most one movie per calendar date.
 
@@ -189,7 +164,7 @@ One row per **daily** synoptic MFS movie (MP4). At most one movie per calendar d
 
 ---
 
-### 8. `datacount`
+### 6. `datacount`
 
 One row per calendar date with **counts** of files in each product type. All counts are derived from the tables above (not from a separate scan).
 
@@ -200,8 +175,6 @@ One row per calendar date with **counts** of files in each product type. All cou
 | `n_spec_hourly`  | INTEGER | NOT NULL    | Number of rows in `spec_hourly` for this date. |
 | `n_img_lev1_mfs` | INTEGER | NOT NULL    | Number of rows in `img_lev1_mfs` for this date. |
 | `n_img_lev1_fch` | INTEGER | NOT NULL    | Number of rows in `img_lev1_fch` for this date. |
-| `n_img_lev15_mfs`| INTEGER | NOT NULL    | Number of rows in `img_lev15_mfs` for this date. |
-| `n_img_lev15_fch`| INTEGER | NOT NULL    | Number of rows in `img_lev15_fch` for this date. |
 | `n_movies`       | INTEGER | NOT NULL    | Number of rows in `movies` for this date (0 or 1). |
 
 A date appears in `datacount` if it has at least one file in any of the spectrum, imaging, or movies tables.
@@ -245,7 +218,7 @@ SELECT dir FROM movies WHERE date = '2024-01-15';
 **Dates that have at least one product:**
 
 ```sql
-SELECT date, n_spec_daily, n_spec_hourly, n_img_lev1_mfs, n_img_lev1_fch, n_img_lev15_mfs, n_img_lev15_fch, n_movies
+SELECT date, n_spec_daily, n_spec_hourly, n_img_lev1_mfs, n_img_lev1_fch, n_movies
 FROM datacount
 ORDER BY date;
 ```
@@ -254,7 +227,7 @@ ORDER BY date;
 
 ```sql
 SELECT date FROM datacount
-WHERE n_img_lev1_mfs = 0 AND n_img_lev1_fch = 0 AND n_img_lev15_mfs = 0 AND n_img_lev15_fch = 0;
+WHERE n_img_lev1_mfs = 0 AND n_img_lev1_fch = 0;
 ```
 
 **Dates that have a movie:**

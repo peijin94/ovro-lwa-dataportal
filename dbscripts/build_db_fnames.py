@@ -25,8 +25,6 @@ class DataCounts:
     n_spec_hourly: int = 0
     n_img_lev1_mfs: int = 0
     n_img_lev1_fch: int = 0
-    n_img_lev15_mfs: int = 0
-    n_img_lev15_fch: int = 0
     n_movies: int = 0
 
 
@@ -43,8 +41,9 @@ def init_db(conn: sqlite3.Connection) -> None:
         DROP TABLE IF EXISTS spec_hourly;
         DROP TABLE IF EXISTS spec_daily_fits;
         DROP TABLE IF EXISTS img_lev1_mfs;
-        DROP TABLE IF EXISTS img_lev15_mfs;
         DROP TABLE IF EXISTS img_lev1_fch;
+        -- Level-1.5 products are no longer indexed; drop any leftover tables.
+        DROP TABLE IF EXISTS img_lev15_mfs;
         DROP TABLE IF EXISTS img_lev15_fch;
         DROP TABLE IF EXISTS movies;
         DROP TABLE IF EXISTS datacount;
@@ -69,17 +68,7 @@ def init_db(conn: sqlite3.Connection) -> None:
             datetime TEXT NOT NULL UNIQUE
         );
 
-        CREATE TABLE img_lev15_mfs (
-            date     TEXT NOT NULL,
-            datetime TEXT NOT NULL UNIQUE
-        );
-
         CREATE TABLE img_lev1_fch (
-            date     TEXT NOT NULL,
-            datetime TEXT NOT NULL UNIQUE
-        );
-
-        CREATE TABLE img_lev15_fch (
             date     TEXT NOT NULL,
             datetime TEXT NOT NULL UNIQUE
         );
@@ -96,8 +85,6 @@ def init_db(conn: sqlite3.Connection) -> None:
             n_spec_hourly      INTEGER NOT NULL,
             n_img_lev1_mfs     INTEGER NOT NULL,
             n_img_lev1_fch     INTEGER NOT NULL,
-            n_img_lev15_mfs    INTEGER NOT NULL,
-            n_img_lev15_fch    INTEGER NOT NULL,
             n_movies           INTEGER NOT NULL
         );
         """
@@ -237,9 +224,9 @@ def populate_img_table(
     count_field: str,
 ) -> None:
     """
-    level: 'lev1' or 'lev15'
+    level: 'lev1'
     kind: 'mfs' or 'fch'
-    table_name: one of img_lev1_mfs, img_lev15_mfs, img_lev1_fch, img_lev15_fch
+    table_name: one of img_lev1_mfs, img_lev1_fch
     count_field: corresponding attribute name in DataCounts
     """
     level_dir = os.path.join(IMG_ROOT, level)
@@ -364,8 +351,6 @@ def populate_datacount(conn: sqlite3.Connection, counts: DateCounts) -> None:
             dc.n_spec_hourly,
             dc.n_img_lev1_mfs,
             dc.n_img_lev1_fch,
-            dc.n_img_lev15_mfs,
-            dc.n_img_lev15_fch,
             dc.n_movies,
         )
         for date, dc in sorted(counts.items())
@@ -380,10 +365,8 @@ def populate_datacount(conn: sqlite3.Connection, counts: DateCounts) -> None:
             n_spec_hourly,
             n_img_lev1_mfs,
             n_img_lev1_fch,
-            n_img_lev15_mfs,
-            n_img_lev15_fch,
             n_movies
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )
@@ -412,22 +395,10 @@ def build_database(db_path: str = "lwa_data.db") -> None:
             count_field="n_img_lev1_mfs"
         )
 
-        print("[INFO] Populating img_lev15_mfs")
-        populate_img_table(
-            conn, counts, level="lev15", kind="mfs", table_name="img_lev15_mfs",
-            count_field="n_img_lev15_mfs"
-        )
-
         print("[INFO] Populating img_lev1_fch")
         populate_img_table(
             conn, counts, level="lev1", kind="fch", table_name="img_lev1_fch",
             count_field="n_img_lev1_fch"
-        )
-
-        print("[INFO] Populating img_lev15_fch")
-        populate_img_table(
-            conn, counts, level="lev15", kind="fch", table_name="img_lev15_fch",
-            count_field="n_img_lev15_fch"
         )
 
         print("[INFO] Populating movies")

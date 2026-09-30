@@ -16,6 +16,9 @@ from backend.config import (
     MOVIES_ROOT,
     STAGE_WORK_PATH,
     STAGE_READY_PATH,
+    STAGE_MAX_FILES,
+    STAGE_MAX_BYTES,
+    QUERY_MAX_ROWS,
     TURNSTILE_SECRET_KEY,
     PORTAL_BASE_URL,
 )
@@ -134,8 +137,6 @@ def day_summary(date: str) -> dict:
             "n_spec_hourly": 0,
             "n_img_lev1_mfs": 0,
             "n_img_lev1_fch": 0,
-            "n_img_lev15_mfs": 0,
-            "n_img_lev15_fch": 0,
             "n_movies": 0,
         }
     return dc
@@ -194,10 +195,19 @@ def preview_movie(date: str) -> dict:
     return {"date": date, "file": ref, "url": url}
 
 
-def _file_count_and_size(rows: List[tuple]) -> tuple:
-    """Given list of (datetime, dir_path), return (count, total_bytes). dir_path is full NAS path to file."""
+def _file_count_and_size(rows: List[tuple], stop_after: Optional[int] = None) -> tuple:
+    """Given list of (datetime, dir_path), return (count, total_bytes, stopped).
+
+    dir_path is a full NAS path to a file. `stop_after` bounds the number of
+    files stat()ed on the NAS: counting stops as soon as more than `stop_after`
+    files have been counted, and the third element is then True, meaning the
+    returned count is a lower bound and the size is incomplete. Callers that
+    only need to know whether a request exceeds a limit (staging) pass the
+    limit here so a huge time range cannot trigger a huge NAS scan.
+    """
     total = 0
     count = 0
+    stopped = False
     for _dts, dir_path in rows:
         pair = files.full_path_to_root_and_relative(dir_path)
         if not pair:
@@ -210,25 +220,38 @@ def _file_count_and_size(rows: List[tuple]) -> tuple:
             if p.is_file():
                 total += p.stat().st_size
                 count += 1
+                if stop_after is not None and count > stop_after:
+                    stopped = True
+                    break
         except OSError:
             pass
-    return count, total
+    return count, total, stopped
 
 
 @router.post("/query")
 def query_data(body: QueryBody) -> dict:
     """
     Query imaging table by start_time, end_time, data_type, optional cadence.
-    Returns only aggregate information (file_count, total_size_bytes, stage_available)
-    while keeping the per-file list on the backend for staging.
+    Returns only aggregate information (file_count, total_size_bytes,
+    stage_available, truncated) while keeping the per-file list on the backend
+    for staging.
+
+    Work per request is bounded twice: at most QUERY_MAX_ROWS database rows are
+    read, and at most STAGE_MAX_FILES+1 files are stat()ed on the NAS (enough to
+    decide whether staging is possible). If truncated is True the returned
+    counts cover only the start of the requested range, they are lower bounds,
+    and staging is not available for that request.
     """
-    rows = database.query_imaging(
+    rows, rows_truncated = database.query_imaging(
         start_time=body.start_time,
         end_time=body.end_time,
         data_type=body.data_type,
         cadence_seconds=body.cadence,
+        max_rows=QUERY_MAX_ROWS,
     )
-    file_count, total_size_bytes = _file_count_and_size(rows)
+    file_count, total_size_bytes, count_capped = _file_count_and_size(
+        rows, stop_after=STAGE_MAX_FILES
+    )
     # If requested, include all-day spectrum FITS files in the count/size.
     if body.with_all_day_spectrum:
         start_date = body.start_time[:10]
@@ -236,16 +259,26 @@ def query_data(body: QueryBody) -> dict:
         fits_paths = database.get_spec_fits_paths_for_range(start_date, end_date)
         if fits_paths:
             fits_rows = [(None, p) for p in fits_paths]
-            fits_count, fits_size = _file_count_and_size(fits_rows)
+            fits_count, fits_size, fits_capped = _file_count_and_size(
+                fits_rows, stop_after=max(0, STAGE_MAX_FILES - file_count)
+            )
             file_count += fits_count
             total_size_bytes += fits_size
-    STAGE_MAX_FILES = 400
-    STAGE_MAX_BYTES = 3 * 1024**3  # 3 GB
-    stage_available = file_count <= STAGE_MAX_FILES and total_size_bytes < STAGE_MAX_BYTES and file_count > 0
+            count_capped = count_capped or fits_capped
+    truncated = rows_truncated or count_capped
+    stage_available = (
+        not truncated
+        and file_count > 0
+        and file_count <= STAGE_MAX_FILES
+        and total_size_bytes < STAGE_MAX_BYTES
+    )
     return {
         "file_count": file_count,
         "total_size_bytes": total_size_bytes,
         "stage_available": stage_available,
+        "truncated": truncated,
+        "max_files": STAGE_MAX_FILES,
+        "max_bytes": STAGE_MAX_BYTES,
         "start_time": body.start_time,
         "end_time": body.end_time,
     }
@@ -265,30 +298,48 @@ def stage_data(request: Request, background: BackgroundTasks, body: StageBody) -
     if not body.email.strip():
         raise HTTPException(status_code=400, detail="Email is required for staging")
 
-    STAGE_MAX_FILES = 400
-    STAGE_MAX_BYTES = 3 * 1024**3  # 3 GB
-    rows = database.query_imaging(
+    rows, rows_truncated = database.query_imaging(
         start_time=body.start_time,
         end_time=body.end_time,
         data_type=body.data_type,
         cadence_seconds=body.cadence,
+        max_rows=QUERY_MAX_ROWS,
     )
+    if rows_truncated:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Time range too large: more than {QUERY_MAX_ROWS} files match. "
+                "Narrow the time range or increase the cadence."
+            ),
+        )
     if not rows:
         raise HTTPException(status_code=400, detail="No files in range")
-    file_count, total_size_bytes = _file_count_and_size(rows)
+    # Bounded counting: stop as soon as the request is known to be too large.
+    file_count, total_size_bytes, _ = _file_count_and_size(rows, stop_after=STAGE_MAX_FILES)
     if body.with_all_day_spectrum:
         start_date = body.start_time[:10]
         end_date = body.end_time[:10]
         fits_paths = database.get_spec_fits_paths_for_range(start_date, end_date)
         if fits_paths:
             fits_rows = [(None, p) for p in fits_paths]
-            fits_count, fits_size = _file_count_and_size(fits_rows)
+            fits_count, fits_size, _ = _file_count_and_size(
+                fits_rows, stop_after=max(0, STAGE_MAX_FILES - file_count)
+            )
             file_count += fits_count
             total_size_bytes += fits_size
     if file_count > STAGE_MAX_FILES:
-        raise HTTPException(status_code=400, detail="Too many files in one request")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many files in one request (limit {STAGE_MAX_FILES})",
+        )
     if total_size_bytes >= STAGE_MAX_BYTES:
-        raise HTTPException(status_code=400, detail="Total size >= 3GB, staging not available")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Total size >= {STAGE_MAX_BYTES / 1024**3:.1f} GB, staging not available"
+            ),
+        )
 
     stage_id = uuid.uuid4().hex
     work_dir = STAGE_WORK_PATH / stage_id

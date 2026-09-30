@@ -1,0 +1,21 @@
+[Unit]
+Description=OVRO-LWA Data Portal backend
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/ovro-lwa-dataportal
+Environment=PYTHONUNBUFFERED=1
+Environment=LWA_DB_PATH=%h/ovro-lwa-dataportal/dbscripts/lwa_data.db
+ExecStart=%h/miniconda3/envs/solarml/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 5001
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGINT
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=default.target

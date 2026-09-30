@@ -23,11 +23,11 @@ DB default: `dbscripts/lwa_data.db` (`LWA_DB_PATH`).
 ## SQLite tables (spectrum-relevant)
 - `spec_daily`, `spec_hourly` — PNG paths (preview)
 - `spec_daily_fits` — daily FITS paths
-- `img_lev1_mfs`, `img_lev15_fch`, etc. — imaging HDFs
+- `img_lev1_mfs`, `img_lev1_fch` — imaging HDFs (level 1 only; level-1.5 is **not** indexed — those archive files are named `lev1.5_*`, see issue #5)
 - `datacount` — per-day counts for calendar UI
 
 ## Data request flow
-1. **POST /portal/query** — `query_imaging()` + optional `get_spec_fits_paths_for_range()` when `with_all_day_spectrum=true`. Limits: ≤400 files, &lt;3 GB → `stage_available`.
+1. **POST /portal/query** — `query_imaging()` + optional `get_spec_fits_paths_for_range()` when `with_all_day_spectrum=true`. Limits: ≤`STAGE_MAX_FILES` (400) files, <`STAGE_MAX_BYTES` (3 GiB) → `stage_available`; `QUERY_MAX_ROWS` (20 000) caps rows read, and a capped request returns `truncated: true` with staging unavailable.
 2. **POST /portal/stage** — copies imaging HDFs to `STAGE_WORK_PATH/{uuid}/`, optional spectrum FITS, `shutil.make_archive(..., "zip")` → `STAGE_READY_PATH/{uuid}.zip`, email via `send_stage_email`.
 3. **GET /portal/download/{stage_id}.zip** — download bundle.
 

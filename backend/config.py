@@ -39,13 +39,21 @@ ROOT_KEYS = {
 # Default matches production host; can be overridden with PORTAL_BASE_URL env.
 PORTAL_BASE_URL = os.getenv("PORTAL_BASE_URL", "https://ovsa.njit.edu/lwa")
 
-# Imaging table name by data_type (lev1_mfs, lev15_fch, etc.)
+# Imaging table name by data_type (lev1_mfs, lev1_fch, etc.)
+# Only level-1 products are indexed: the level-1.5 archive files are named
+# `ovro-lwa-352.lev1.5_<kind>_10s...`, which this portal does not serve.
 DATA_TYPE_TO_TABLE = {
     "lev1_mfs": "img_lev1_mfs",
     "lev1_fch": "img_lev1_fch",
-    "lev15_mfs": "img_lev15_mfs",
-    "lev15_fch": "img_lev15_fch",
 }
+
+# Per-request work limits (bound how much NAS work one request can trigger).
+# STAGE_MAX_FILES / STAGE_MAX_BYTES gate the zip staging feature.
+# QUERY_MAX_ROWS caps how many imaging rows a single query may materialize;
+# requests that would exceed it are reported as truncated and cannot be staged.
+STAGE_MAX_FILES = int(os.getenv("STAGE_MAX_FILES", "400"))
+STAGE_MAX_BYTES = int(os.getenv("STAGE_MAX_BYTES", str(3 * 1024**3)))  # 3 GB
+QUERY_MAX_ROWS = int(os.getenv("QUERY_MAX_ROWS", "20000"))
 
 # Staging: where to write work dirs and ready zip bundles and base URL for download links
 # STAGE_BASE_PATH and STAGE_URL_BASE are kept for backward compatibility but

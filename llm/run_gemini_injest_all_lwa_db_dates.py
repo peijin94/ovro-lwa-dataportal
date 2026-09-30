@@ -44,9 +44,7 @@ DATE_TABLES = (
     "spec_hourly",
     "spec_daily_fits",
     "img_lev1_mfs",
-    "img_lev15_mfs",
     "img_lev1_fch",
-    "img_lev15_fch",
     "movies",
 )
 

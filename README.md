@@ -36,11 +36,27 @@ The service is intended to run at **localhost:5001** and be exposed at **https:/
    ```bash
    cd frontend && npm run build
    ```
-2. Run the backend from the project root; it will serve the built frontend from `frontend/dist` at `/` and the API at `/portal/*`:
+2. Run the backend from the project root as a **systemd service** — it serves the
+   built frontend from `frontend/dist` at `/` and the API at `/portal/*`:
+   ```bash
+   install -m 0644 deploy/ovro-lwa-dataportal.service ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable --now ovro-lwa-dataportal.service
+   ```
+   `deploy/ovro-lwa-dataportal.service` is a **user** unit (same pattern as
+   `deploy/ovsa-api.service`), so it needs no `sudo`; it requires lingering to be
+   enabled once for the account (`loginctl enable-linger $USER`) so the service
+   starts at boot and keeps running after logout. Check it with
+   `systemctl --user status ovro-lwa-dataportal` and read logs with
+   `journalctl --user -u ovro-lwa-dataportal`.
+   To run it under the system manager instead, add `User=<name>` to the unit and
+   install it in `/etc/systemd/system/`.
+3. Point the reverse proxy (e.g. at ovsa.njit.edu) at `http://localhost:5001` under the path `/lwa/`.
+
+Running the server by hand is fine for a quick check, but not for production:
    ```bash
    python -m uvicorn backend.main:app --host 127.0.0.1 --port 5001
    ```
-3. Point the reverse proxy (e.g. at ovsa.njit.edu) at `http://localhost:5001` under the path `/lwa/`.
 
 ---
 
@@ -60,6 +76,9 @@ The service is intended to run at **localhost:5001** and be exposed at **https:/
 | `STAGE_WORK_PATH` | Backend | Directory for temporary staging work trees (default `/home/peijin/tmpdir/work`). |
 | `STAGE_READY_PATH` | Backend | Directory where ready zip files are written (default `/home/peijin/tmpdir/ready`). |
 | `STAGE_RETENTION_HOURS` | Cleanup cron | Delete staged zips and orphaned work dirs older than this many hours (default `12`). |
+| `STAGE_MAX_FILES` | Backend | Max files per staged request (default `400`). Checked before any staging work starts, and used to bound the per-request NAS scan. |
+| `STAGE_MAX_BYTES` | Backend | Max total size per staged request in bytes (default `3 GiB`). |
+| `QUERY_MAX_ROWS` | Backend | Max imaging rows a single query reads (default `20000`). A larger range is reported with `truncated: true` and cannot be staged. |
 
 Staged zips are not removed on download. Schedule daily cleanup at 00:00 UTC: see [dbscripts/CRONTAB.md](dbscripts/CRONTAB.md) (`cron_cleanup_stage.sh`).
 
@@ -84,8 +103,9 @@ NAS roots (spectrum, imaging, movies, FITS) are set in `backend/config.py` to ma
 - `GET /portal/files?root=...&path=...` — Stream file (inline).
 - `GET /portal/download?root=...&path=...` — Stream file (attachment).
 - `GET /portal/download/{stage_id}.zip` — Download a staged zip bundle created by the portal (no directory listing).
-- `POST /portal/query` — Body: `start_time`, `end_time`, `data_type`, `cadence`, `with_all_day_spectrum`; returns aggregate counts and size.
+- `POST /portal/query` — Body: `start_time`, `end_time`, `data_type`, `cadence`, `with_all_day_spectrum`; returns aggregate counts and size, plus `stage_available` and `truncated`. Only `lev1_mfs` / `lev1_fch` are accepted as `data_type`.
   - When `with_all_day_spectrum=true`, spectrum FITS files are included in the count/size.
+  - Work is bounded: at most `QUERY_MAX_ROWS` rows are read and at most `STAGE_MAX_FILES+1` files are `stat()`ed. `truncated: true` means the counts are lower bounds over the start of the range and staging is unavailable for that request (narrow the range or raise the cadence).
 - `GET /portal/ephemeris` — Sun position and rise/set times (JSON).
 
 Full API and database schema: [DATABASE.md](DATABASE.md).
