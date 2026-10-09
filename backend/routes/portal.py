@@ -228,6 +228,12 @@ def _file_count_and_size(rows: List[tuple], stop_after: Optional[int] = None) ->
     return count, total, stopped
 
 
+@router.get("/limits")
+def get_limits() -> dict:
+    """Per-request staging limits, so the UI can state them up front."""
+    return {"max_files": STAGE_MAX_FILES, "max_bytes": STAGE_MAX_BYTES}
+
+
 @router.post("/query")
 def query_data(body: QueryBody) -> dict:
     """
