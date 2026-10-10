@@ -50,6 +50,10 @@ export function getVisitorCount() {
   return portal('/visitors/count')
 }
 
+export function getLimits() {
+  return portal('/limits')
+}
+
 export function getAiSummary(date) {
   return portal(`/ai-summary/${date}`)
 }

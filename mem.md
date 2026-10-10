@@ -30,6 +30,7 @@ DB default: `dbscripts/lwa_data.db` (`LWA_DB_PATH`).
 1. **POST /portal/query** — `query_imaging()` + optional `get_spec_fits_paths_for_range()` when `with_all_day_spectrum=true`. Limits: ≤`STAGE_MAX_FILES` (400) files, <`STAGE_MAX_BYTES` (3 GiB) → `stage_available`; `QUERY_MAX_ROWS` (20 000) caps rows read, and a capped request returns `truncated: true` with staging unavailable.
 2. **POST /portal/stage** — copies imaging HDFs to `STAGE_WORK_PATH/{uuid}/`, optional spectrum FITS, `shutil.make_archive(..., "zip")` → `STAGE_READY_PATH/{uuid}.zip`, email via `send_stage_email`.
 3. **GET /portal/download/{stage_id}.zip** — download bundle.
+- **GET /portal/limits** — returns the staging limits (`{max_files, max_bytes}`); the query form states them up front and warns when a request exceeds them.
 
 Path safety: `files.full_path_to_root_and_relative()`, `files.resolve_to_allowed_path()`; missing files skipped silently.
 

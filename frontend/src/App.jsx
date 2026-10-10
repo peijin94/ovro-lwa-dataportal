@@ -9,6 +9,7 @@ import {
   getCoverage,
   getVisitorCount,
   getAiSummary,
+  getLimits,
   postQuery,
   postStage,
   getEphemeris,
@@ -55,6 +56,7 @@ export default function App() {
   const [queryDataType, setQueryDataType] = useState('lev1_mfs')
   const [queryResults, setQueryResults] = useState(null)
   const [queryLoading, setQueryLoading] = useState(false)
+  const [stageLimits, setStageLimits] = useState({ max_files: 400, max_bytes: 3 * 1024 ** 3 })
   const [stageName, setStageName] = useState('')
   const [stageInstitute, setStageInstitute] = useState('')
   const [stageEmail, setStageEmail] = useState('')
@@ -125,6 +127,14 @@ export default function App() {
         if (typeof data.count === 'number') setVisitorCount(data.count)
       })
       .catch(() => setVisitorCount(null))
+  }, [])
+
+  useEffect(() => {
+    getLimits()
+      .then((data) => {
+        if (typeof data.max_files === 'number' && typeof data.max_bytes === 'number') setStageLimits(data)
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -783,7 +793,21 @@ export default function App() {
       <section className="mb-8 max-w-2xl">
         <div className="rounded border border-gray-600 bg-gray-800/50 p-4">
           <h2 className="text-xl font-semibold text-white mb-2">Data query</h2>
-          <p className="text-sm text-gray-400 mb-3">All times in UTC, 24-hour format.</p>
+          <p className="text-sm text-gray-400 mb-1">All times in UTC, 24-hour format.</p>
+          <p className="text-sm text-gray-400 mb-3">
+            Downloads are staged per request: up to {stageLimits.max_files} files and{' '}
+            {formatBytes(stageLimits.max_bytes)}. Larger selections cannot be staged here — for a larger dataset,
+            please submit an{' '}
+            <a
+              href="https://forms.gle/xPo7G3fwGwQhEmdLA"
+              className="text-blue-400 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              OVSA data request
+            </a>
+            .
+          </p>
           <form onSubmit={handleQuery} className="flex flex-col gap-4 mb-3">
             <div>
               <label className="block text-sm text-gray-300 mb-1">Start time (UTC, 24h)</label>
@@ -843,6 +867,34 @@ export default function App() {
                   {queryResults.file_count ?? 0} file(s), total {formatBytes(queryResults.total_size_bytes ?? 0)}
                 </p>
               )}
+              {!queryResults.error && (() => {
+                const maxFiles = queryResults.max_files ?? stageLimits.max_files
+                const maxBytes = queryResults.max_bytes ?? stageLimits.max_bytes
+                const reasons = []
+                if ((queryResults.total_size_bytes ?? 0) >= maxBytes) {
+                  reasons.push(`total size ${formatBytes(queryResults.total_size_bytes)} vs the ${formatBytes(maxBytes)} limit`)
+                }
+                if ((queryResults.file_count ?? 0) > maxFiles) {
+                  reasons.push(`${queryResults.file_count} files vs the ${maxFiles}-file limit`)
+                }
+                if (queryResults.truncated || reasons.length === 0) return null
+                return (
+                  <p className="text-amber-300 mb-1">
+                    The requested total size exceeds the limit of {formatBytes(maxBytes)} ({maxFiles} files) per
+                    request — {reasons.join('; ')}. Please modify your request and resubmit the query. If a larger
+                    dataset is required, please submit a data request via{' '}
+                    <a
+                      href="https://forms.gle/xPo7G3fwGwQhEmdLA"
+                      className="text-blue-400 hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      this form
+                    </a>
+                    .
+                  </p>
+                )
+              })()}
               {!queryResults.error && queryResults.truncated && (
                 <p className="text-amber-300 mb-1">
                   Time range too large: only the start of the range was counted (limit{' '}
