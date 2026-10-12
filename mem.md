@@ -32,6 +32,8 @@ DB default: `dbscripts/lwa_data.db` (`LWA_DB_PATH`).
 3. **GET /portal/download/{stage_id}.zip** — download bundle.
 - **GET /portal/limits** — returns the staging limits (`{max_files, max_bytes}`); the query form states them up front and warns when a request exceeds them.
 
+CORS: same-origin API — only `PORTAL_ALLOWED_ORIGINS` (comma-separated; default: the origin of `PORTAL_BASE_URL` plus its `www.` variant) is allowed, with credentials off and methods limited to GET/POST. Foreign origins get no CORS headers (see issue #9).
+
 Path safety: `files.full_path_to_root_and_relative()`, `files.resolve_to_allowed_path()`; missing files skipped silently.
 
 ## Spectrum checkbox semantics
