@@ -34,6 +34,8 @@ DB default: `dbscripts/lwa_data.db` (`LWA_DB_PATH`).
 
 CORS: same-origin API — only `PORTAL_ALLOWED_ORIGINS` (comma-separated; default: the origin of `PORTAL_BASE_URL` plus its `www.` variant) is allowed, with credentials off and methods limited to GET/POST. Foreign origins get no CORS headers (see issue #9).
 
+Visitor logging: tables are created once at import; writes run via `run_in_threadpool` (off the event loop); raw rows older than `VISITORS_RETAIN_DAYS` (default 365) are folded into a cumulative archive count at startup, and `/portal/visitors/count` returns archive + live rows (see issue #8).
+
 Path safety: `files.full_path_to_root_and_relative()`, `files.resolve_to_allowed_path()`; missing files skipped silently.
 
 ## Spectrum checkbox semantics

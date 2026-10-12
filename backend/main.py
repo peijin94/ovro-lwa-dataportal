@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from backend.config import PORTAL_BASE_URL
 from backend.routes.portal import router as portal_router
@@ -63,8 +64,9 @@ async def index(request: Request):
     If the Vite build exists, return dist/index.html.
     Otherwise, return a simple JSON error so the service is still observable.
     """
-    # Record this visit (best-effort; failures are logged but non-fatal)
-    record_visit(request)
+    # Record this visit off the event loop (best-effort; failures are
+    # logged but non-fatal). Blocking SQLite must not run on the loop.
+    await run_in_threadpool(record_visit, request)
 
     index_path = frontend_dist / "index.html"
     if index_path.is_file():
