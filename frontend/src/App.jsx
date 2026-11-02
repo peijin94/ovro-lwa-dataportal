@@ -447,7 +447,7 @@ export default function App() {
             <h2 className="text-xl font-semibold text-white mb-2">Preview</h2>
             {loadingPreview && <p className="text-gray-400">Loading…</p>}
             {!loadingPreview && !dailySpec && !movieUrl && spectrumUrls.length === 0 && selectedDate && (
-              <p className="text-gray-400">No data for this day.</p>
+              <p className="text-gray-400">No previews available for this day.</p>
             )}
             <div className="mb-2 flex flex-wrap items-center gap-3">
               <h3 className="text-lg text-gray-200">Daily spectrogram</h3>
