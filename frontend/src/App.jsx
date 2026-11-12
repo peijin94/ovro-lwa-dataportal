@@ -24,6 +24,7 @@ const AWS_DATA_MIRROR_URL = 'https://registry.opendata.aws/ovrolwasolar/'
 const SOLAR_RADIO_CLOUD_GUIDE_URL = 'https://pjzhang.cc/solarradiocloud/'
 const DATA_POLICY_URL = 'https://ovsa.njit.edu/obsc/202609-PSP-perihelion-OVSA.html'
 const POLICY_ACK_STORAGE_KEY = 'lwa-data-policy-ack-v1'
+const POLICY_SEEN_STORAGE_KEY = 'lwa-data-policy-seen-v1'
 const DATA_POLICY_ACKNOWLEDGEMENT =
   'Suggested acknowledgement for publications if data is used: The OVRO-LWA expansion project was supported by NSF under grant AST-1828784. EOVSA and OVRO-LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
 const SPEC_FITS_S3_BASE = 'https://ovro-lwa-solar.s3-us-west-2.amazonaws.com/spec_fits'
@@ -88,7 +89,15 @@ export default function App() {
   const [aiSummaryText, setAiSummaryText] = useState('')
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
   const [aiSummaryError, setAiSummaryError] = useState('')
-  const [dataPolicyOpen, setDataPolicyOpen] = useState(false)
+  // Show the policy once on the first visit in this browser; the seen flag is
+  // written when the visitor dismisses or acknowledges it.
+  const [dataPolicyOpen, setDataPolicyOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem(POLICY_SEEN_STORAGE_KEY) !== '1'
+    } catch {
+      return false
+    }
+  })
   const [policyGate, setPolicyGate] = useState(null)
 
   // Initialize Cloudflare Turnstile widget
@@ -232,6 +241,14 @@ export default function App() {
     }
   }
 
+  function rememberPolicySeen() {
+    try {
+      window.localStorage.setItem(POLICY_SEEN_STORAGE_KEY, '1')
+    } catch {
+      // ignore: without storage the notice simply reappears next visit
+    }
+  }
+
   // Run an action only after the visitor has acknowledged the data policy once.
   function requirePolicyAck(action, actionLabel) {
     if (hasPolicyAck()) {
@@ -242,8 +259,16 @@ export default function App() {
   }
 
   function closePolicyDialog() {
+    rememberPolicySeen()
     setDataPolicyOpen(false)
     setPolicyGate(null)
+  }
+
+  // First-visit notice: acknowledging also satisfies the download/staging gate.
+  function acknowledgePolicyNotice() {
+    rememberPolicyAck()
+    rememberPolicySeen()
+    setDataPolicyOpen(false)
   }
 
   function confirmPolicyAndContinue() {
@@ -253,9 +278,26 @@ export default function App() {
     if (pending && typeof pending.action === 'function') pending.action()
   }
 
+  // Open a URL in a new tab. A synthetic anchor click is used instead of
+  // window.open because popup blockers reject window.open from a deferred
+  // handler, while a plain anchor navigation is honoured.
+  function openDownloadLink(url) {
+    const link = document.createElement('a')
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
   function handleGatedDownload(event, url, actionLabel) {
+    if (hasPolicyAck()) {
+      // let the anchor's own navigation happen
+      return
+    }
     event.preventDefault()
-    requirePolicyAck(() => window.open(url, '_blank', 'noopener'), actionLabel)
+    setPolicyGate({ action: () => openDownloadLink(url), actionLabel })
   }
 
   function handleQuery(e) {
@@ -875,6 +917,24 @@ export default function App() {
                     Cancel
                   </button>
                 </div>
+              </div>
+            )}
+            {!policyGate && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-700 pt-3">
+                <button
+                  type="button"
+                  className="rounded bg-amber-400 px-3 py-1.5 text-sm font-bold text-gray-900 hover:bg-amber-300"
+                  onClick={acknowledgePolicyNotice}
+                >
+                  I understand
+                </button>
+                <button
+                  type="button"
+                  className="rounded bg-gray-700 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600"
+                  onClick={closePolicyDialog}
+                >
+                  Close
+                </button>
               </div>
             )}
             <p className="mt-3 text-xs text-gray-400">

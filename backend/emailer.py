@@ -6,9 +6,11 @@ from backend.config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_
 
 LWA_SOLAR_UTIL_URL = "https://github.com/ovro-eovsa/lwa-solar-util"
 LWA_SOLAR_UTIL_NOTEBOOK_URL = "https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook"
+DATA_POLICY_URL = "https://ovsa.njit.edu/obsc/202609-PSP-perihelion-OVSA.html"
 ACKNOWLEDGMENT_TEXT = (
-    "The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. "
-    "OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT."
+    "Suggested acknowledgement for publications if data is used: "
+    "The OVRO-LWA expansion project was supported by NSF under grant AST-1828784. "
+    "EOVSA and OVRO-LWA solar operations are supported by NSF grant AGS-2436999 to NJIT."
 )
 
 
@@ -20,6 +22,43 @@ def _format_bytes(n: int) -> str:
     if n >= 1_000:
         return f"{n / 1_000:.2f} KB"
     return f"{n} B"
+
+
+def build_stage_email_body(
+    to_email: str,
+    download_url: str,
+    file_count: int,
+    total_size_bytes: int,
+    start_time: str,
+    end_time: str,
+    name: str = "",
+    institute: str = "",
+) -> str:
+    """Compose the staged-data-ready email body, including the data policy."""
+    size_str = _format_bytes(total_size_bytes)
+    return (
+        "Your requested OVRO-LWA data has been staged and is ready for download.\n\n"
+        f"Name: {name.strip() or '(not provided)'}\n"
+        f"Institute: {institute.strip() or '(not provided)'}\n"
+        f"Email: {to_email.strip()}\n\n"
+        f"Time range (UTC): {start_time} – {end_time}\n"
+        f"Number of files: {file_count}\n"
+        f"Total size: {size_str}\n\n"
+        f"Download link:\n{download_url}\n\n"
+        "This link may be temporary; please download the data as soon as convenient.\n\n"
+        "Data policy and suggested acknowledgement\n"
+        "-----------------------------------------\n"
+        f"{ACKNOWLEDGMENT_TEXT}\n\n"
+        "Please also follow the full data policy before redistributing or publishing "
+        f"these data:\n  {DATA_POLICY_URL}\n\n"
+        "Working with the downloaded data (FITS/HDF imaging cubes, dynamic spectrum FITS):\n"
+        f"  lwa-solar-util guide: {LWA_SOLAR_UTIL_URL}\n"
+        f"  Example notebooks: {LWA_SOLAR_UTIL_NOTEBOOK_URL}\n\n"
+        "This message was sent from an unmonitored address "
+        f"({SMTP_FROM}); replies are not read.\n\n"
+        "If you have any questions, please do not hesitate to reach out to "
+        "Peijin Zhang (peijinzhang8@gmail.com)."
+    )
 
 
 def send_stage_email(
@@ -45,26 +84,16 @@ def send_stage_email(
         print("[EMAIL] SMTP not configured; skipping email send")
         return
 
-    size_str = _format_bytes(total_size_bytes)
     subject = "OVRO-LWA staged data ready for download"
-    body = (
-        "Your requested OVRO-LWA data has been staged and is ready for download.\n\n"
-        f"Name: {name.strip() or '(not provided)'}\n"
-        f"Institute: {institute.strip() or '(not provided)'}\n"
-        f"Email: {to_email.strip()}\n\n"
-        f"Time range (UTC): {start_time} – {end_time}\n"
-        f"Number of files: {file_count}\n"
-        f"Total size: {size_str}\n\n"
-        f"Download link:\n{download_url}\n\n"
-        "This link may be temporary; please download the data as soon as convenient.\n\n"
-        "Working with the downloaded data (FITS/HDF imaging cubes, dynamic spectrum FITS):\n"
-        f"  lwa-solar-util guide: {LWA_SOLAR_UTIL_URL}\n"
-        f"  Example notebooks: {LWA_SOLAR_UTIL_NOTEBOOK_URL}\n\n"
-        "This message was sent from an unmonitored address "
-        f"({SMTP_FROM}); replies are not read.\n\n"
-        "If you have any questions, please do not hesitate to reach out to "
-        "Peijin Zhang (peijinzhang8@gmail.com).\n\n"
-        f"Acknowledgment:\n{ACKNOWLEDGMENT_TEXT}"
+    body = build_stage_email_body(
+        to_email=to_email,
+        download_url=download_url,
+        file_count=file_count,
+        total_size_bytes=total_size_bytes,
+        start_time=start_time,
+        end_time=end_time,
+        name=name,
+        institute=institute,
     )
 
     msg = EmailMessage()
