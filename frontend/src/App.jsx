@@ -22,8 +22,11 @@ const LWA_SOLAR_UTIL_URL = 'https://github.com/ovro-eovsa/lwa-solar-util'
 const LWA_SOLAR_UTIL_NOTEBOOK_URL = 'https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook'
 const AWS_DATA_MIRROR_URL = 'https://registry.opendata.aws/ovrolwasolar/'
 const SOLAR_RADIO_CLOUD_GUIDE_URL = 'https://pjzhang.cc/solarradiocloud/'
-const ACKNOWLEDGMENT_TEXT =
-  'The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
+const DATA_POLICY_URL = 'https://ovsa.njit.edu/obsc/202609-PSP-perihelion-OVSA.html'
+const POLICY_ACK_STORAGE_KEY = 'lwa-data-policy-ack-v1'
+const POLICY_SEEN_STORAGE_KEY = 'lwa-data-policy-seen-v1'
+const DATA_POLICY_ACKNOWLEDGEMENT =
+  'Suggested acknowledgement for publications if data is used: The OVRO-LWA expansion project was supported by NSF under grant AST-1828784. EOVSA and OVRO-LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
 const SPEC_FITS_S3_BASE = 'https://ovro-lwa-solar.s3-us-west-2.amazonaws.com/spec_fits'
 
 function specFitsS3Url(dateIso) {
@@ -86,6 +89,16 @@ export default function App() {
   const [aiSummaryText, setAiSummaryText] = useState('')
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
   const [aiSummaryError, setAiSummaryError] = useState('')
+  // Show the policy once on the first visit in this browser; the seen flag is
+  // written when the visitor dismisses or acknowledges it.
+  const [dataPolicyOpen, setDataPolicyOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem(POLICY_SEEN_STORAGE_KEY) !== '1'
+    } catch {
+      return false
+    }
+  })
+  const [policyGate, setPolicyGate] = useState(null)
 
   // Initialize Cloudflare Turnstile widget
   useEffect(() => {
@@ -211,6 +224,81 @@ export default function App() {
   const durationTooLong = queryStartMs != null && queryEndMs != null && (queryEndMs - queryStartMs) > SEVEN_DAYS_MS
   const queryDisabled = queryLoading || durationNegative || durationTooLong || !queryStart?.trim() || !queryEnd?.trim() || Number.isNaN(queryStartMs) || Number.isNaN(queryEndMs)
   const queryDisabledTooltip = durationNegative ? 'duration < 0' : durationTooLong ? 'time too long' : ''
+
+  function hasPolicyAck() {
+    try {
+      return window.localStorage.getItem(POLICY_ACK_STORAGE_KEY) === '1'
+    } catch {
+      return false
+    }
+  }
+
+  function rememberPolicyAck() {
+    try {
+      window.localStorage.setItem(POLICY_ACK_STORAGE_KEY, '1')
+    } catch {
+      // private mode or storage disabled: the gate still works, it just asks again
+    }
+  }
+
+  function rememberPolicySeen() {
+    try {
+      window.localStorage.setItem(POLICY_SEEN_STORAGE_KEY, '1')
+    } catch {
+      // ignore: without storage the notice simply reappears next visit
+    }
+  }
+
+  // Run an action only after the visitor has acknowledged the data policy once.
+  function requirePolicyAck(action, actionLabel) {
+    if (hasPolicyAck()) {
+      action()
+      return
+    }
+    setPolicyGate({ action, actionLabel })
+  }
+
+  function closePolicyDialog() {
+    rememberPolicySeen()
+    setDataPolicyOpen(false)
+    setPolicyGate(null)
+  }
+
+  // First-visit notice: acknowledging also satisfies the download/staging gate.
+  function acknowledgePolicyNotice() {
+    rememberPolicyAck()
+    rememberPolicySeen()
+    setDataPolicyOpen(false)
+  }
+
+  function confirmPolicyAndContinue() {
+    rememberPolicyAck()
+    const pending = policyGate
+    setPolicyGate(null)
+    if (pending && typeof pending.action === 'function') pending.action()
+  }
+
+  // Open a URL in a new tab. A synthetic anchor click is used instead of
+  // window.open because popup blockers reject window.open from a deferred
+  // handler, while a plain anchor navigation is honoured.
+  function openDownloadLink(url) {
+    const link = document.createElement('a')
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  function handleGatedDownload(event, url, actionLabel) {
+    if (hasPolicyAck()) {
+      // let the anchor's own navigation happen
+      return
+    }
+    event.preventDefault()
+    setPolicyGate({ action: () => openDownloadLink(url), actionLabel })
+  }
 
   function handleQuery(e) {
     e.preventDefault()
@@ -383,17 +471,28 @@ export default function App() {
         <h1 className="text-2xl md:text-3xl font-bold text-white">
           OVRO LWA Solar Data Portal
         </h1>
-        <div className="text-xs text-slate-400 sm:text-right">
-          <span
-            role="img"
-            aria-label="wave"
-            className="mr-1"
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <button
+            type="button"
+            onClick={() => setDataPolicyOpen(true)}
+            title="Data policy and suggested acknowledgement for publications"
+            className="inline-flex items-center gap-1.5 rounded-md bg-amber-400 px-3 py-1.5 text-xs font-bold text-gray-900 shadow-sm transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
           >
-            👋
-          </span>
-          {visitorCount !== null
-            ? `Welcome as ${visitorCount.toLocaleString()} visitor`
-            : 'Welcome'}
+            <span aria-hidden="true">📋</span>
+            Data policy
+          </button>
+          <div className="text-xs text-slate-400 sm:text-right">
+            <span
+              role="img"
+              aria-label="wave"
+              className="mr-1"
+            >
+              👋
+            </span>
+            {visitorCount !== null
+              ? `Welcome as ${visitorCount.toLocaleString()} visitor`
+              : 'Welcome'}
+          </div>
         </div>
       </header>
 
@@ -454,6 +553,7 @@ export default function App() {
               {dailySpec && selectedDate && (
                 <a
                   href={specFitsS3Url(selectedDate)}
+                  onClick={(e) => handleGatedDownload(e, specFitsS3Url(selectedDate), 'download the daily spectrum FITS file')}
                   className="inline-block rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
                   target="_blank"
                   rel="noreferrer"
@@ -767,6 +867,87 @@ export default function App() {
         </div>
       )}
 
+      {(dataPolicyOpen || policyGate) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="w-full max-w-2xl rounded-lg border border-amber-400/60 bg-gray-900 p-4 shadow-xl">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <h2 className="text-lg font-semibold text-white">
+                {policyGate ? 'Data policy — before you continue' : 'Data policy and acknowledgement'}
+              </h2>
+              <button
+                type="button"
+                className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+                onClick={closePolicyDialog}
+              >
+                {policyGate ? 'Cancel' : 'Close'}
+              </button>
+            </div>
+            <p className="mb-3 text-sm text-gray-200">{DATA_POLICY_ACKNOWLEDGEMENT}</p>
+            <p className="mb-3 text-sm text-gray-200">
+              Please also follow the full data policy before redistributing or publishing these data.
+            </p>
+            <a
+              href={DATA_POLICY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded bg-amber-500/20 px-3 py-1.5 text-sm font-semibold text-amber-200 hover:bg-amber-500/30"
+            >
+              Full OVSA data policy ↗
+            </a>
+            {policyGate && (
+              <div className="mt-4 border-t border-gray-700 pt-3">
+                <p className="mb-3 text-sm text-amber-200">
+                  You are about to {policyGate.actionLabel}. If you continue, these data are provided
+                  on the understanding that you will include the acknowledgement above in any
+                  publication and follow the data policy.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded bg-amber-400 px-3 py-1.5 text-sm font-bold text-gray-900 hover:bg-amber-300"
+                    onClick={confirmPolicyAndContinue}
+                  >
+                    I understand — continue
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded bg-gray-700 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600"
+                    onClick={closePolicyDialog}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {!policyGate && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-700 pt-3">
+                <button
+                  type="button"
+                  className="rounded bg-amber-400 px-3 py-1.5 text-sm font-bold text-gray-900 hover:bg-amber-300"
+                  onClick={acknowledgePolicyNotice}
+                >
+                  I understand
+                </button>
+                <button
+                  type="button"
+                  className="rounded bg-gray-700 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600"
+                  onClick={closePolicyDialog}
+                >
+                  Close
+                </button>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-gray-400">
+              Questions:{' '}
+              <a href="mailto:peijinzhang8@gmail.com" className="text-blue-400 hover:underline">
+                Peijin Zhang
+              </a>{' '}
+              (peijinzhang8@gmail.com)
+            </p>
+          </div>
+        </div>
+      )}
+
       {hourlySpecs.length > 0 && (
         <section className="mb-8">
           <h3 className="text-lg text-gray-200 mb-2">Hourly spectrograms</h3>
@@ -775,6 +956,7 @@ export default function App() {
               <a
                 key={i}
                 href={url}
+                onClick={(e) => handleGatedDownload(e, url, 'open an hourly spectrogram image')}
                 target="_blank"
                 rel="noreferrer"
                 className="block"
@@ -909,6 +1091,7 @@ export default function App() {
         {dailySpec && selectedDate && (
           <a
             href={specFitsS3Url(selectedDate)}
+            onClick={(e) => handleGatedDownload(e, specFitsS3Url(selectedDate), 'download the daily spectrum FITS file')}
             className="mt-4 inline-block rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
             target="_blank"
             rel="noreferrer"
@@ -934,7 +1117,13 @@ export default function App() {
               The data is available for staging. After staging is ready, we will email you the download link from ovsa.operations.noreply@gmail.com — please check your spam.
             </p>
             {!stageDone ? (
-              <form onSubmit={handleStage} className="flex flex-col gap-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  requirePolicyAck(() => handleStage(e), 'request a staged data download')
+                }}
+                className="flex flex-col gap-3"
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
                   <div>
                     <label htmlFor="stage-name" className="block text-sm text-gray-300 mb-1">Name</label>
@@ -1074,7 +1263,25 @@ export default function App() {
       </section>
 
       <footer className="mt-10 pt-6 border-t border-gray-700 text-sm text-gray-400 space-y-3">
-        <p className="text-gray-500 italic">{ACKNOWLEDGMENT_TEXT}</p>
+        <p>
+          <span className="text-gray-300">Acknowledgement and data policy:</span>{' '}
+          <button
+            type="button"
+            onClick={() => setDataPolicyOpen(true)}
+            className="text-amber-300 hover:underline"
+          >
+            open the data policy
+          </button>
+          {' · '}
+          <a
+            href={DATA_POLICY_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-400 hover:underline"
+          >
+            full OVSA data policy ↗
+          </a>
+        </p>
         <p>
         If you have any questions, please do not hesitate to reach out to{' '}
         <a href="mailto:peijinzhang8@gmail.com" className="text-blue-400 hover:underline">
