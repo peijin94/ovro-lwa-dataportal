@@ -13,11 +13,14 @@ def get_connection() -> sqlite3.Connection:
 
 
 def get_avail_dates() -> List[str]:
-    """Return sorted list of dates that have data (from spec_daily)."""
+    """Return sorted dates with any indexed product, including image-only days."""
     conn = get_connection()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT date FROM spec_daily ORDER BY date")
+        cur.execute("""SELECT date FROM spec_daily UNION SELECT date FROM datacount
+                       WHERE n_spec_daily+n_spec_daily_fits+n_spec_hourly+
+                             n_img_lev1_mfs+n_img_lev1_fch+n_movies > 0
+                       ORDER BY date""")
         return [row[0] for row in cur.fetchall()]
     finally:
         conn.close()
@@ -202,22 +205,27 @@ def query_imaging(
     conn = get_connection()
     try:
         cur = conn.cursor()
-        # Imaging tables store only (date, datetime); reconstruct full paths from datetime.
-        sql = f"SELECT datetime FROM {table} WHERE datetime >= ? AND datetime <= ? ORDER BY datetime"
+        # Backfilled rows preserve their real filenames; older schemas/NULL paths
+        # retain the established naming fallback.
+        has_path = "dir" in {row[1] for row in cur.execute(f"PRAGMA table_info({table})")}
+        path_column = "dir" if has_path else "NULL"
+        sql = f"SELECT datetime, {path_column} FROM {table} WHERE datetime >= ? AND datetime <= ? ORDER BY datetime"
         params: List[object] = [start_time, end_time]
         if max_rows is not None:
             # Read one extra row so an exact-limit result is not reported as truncated.
             sql += " LIMIT ?"
             params.append(int(max_rows) + 1)
         cur.execute(sql, params)
-        dts_list = [row[0] for row in cur.fetchall()]
+        fetched = cur.fetchall()
+        dts_list = [row[0] for row in fetched]
         truncated = False
         if max_rows is not None and len(dts_list) > max_rows:
             truncated = True
             dts_list = dts_list[:max_rows]
         if not dts_list:
             return [], False
-        paths = datetime_to_full_path(IMG_ROOT, dts_list, data_type)
+        fallback = datetime_to_full_path(IMG_ROOT, dts_list, data_type)
+        paths = [row[1] or path for row, path in zip(fetched, fallback)]
         rows: List[Tuple[str, str]] = list(zip(dts_list, paths))
         # Cadence: if < 10s take all; if >= 10s thin by cadence
         if not cadence_seconds or cadence_seconds < 10:
