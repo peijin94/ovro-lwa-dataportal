@@ -22,8 +22,9 @@ const LWA_SOLAR_UTIL_URL = 'https://github.com/ovro-eovsa/lwa-solar-util'
 const LWA_SOLAR_UTIL_NOTEBOOK_URL = 'https://github.com/ovro-eovsa/lwa-solar-util/tree/main/notebook'
 const AWS_DATA_MIRROR_URL = 'https://registry.opendata.aws/ovrolwasolar/'
 const SOLAR_RADIO_CLOUD_GUIDE_URL = 'https://pjzhang.cc/solarradiocloud/'
-const ACKNOWLEDGMENT_TEXT =
-  'The OVRO--LWA expansion project was supported by NSF under grant AST-1828784. OVRO--LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
+const DATA_POLICY_URL = 'https://ovsa.njit.edu/obsc/202609-PSP-perihelion-OVSA.html'
+const DATA_POLICY_ACKNOWLEDGEMENT =
+  'Suggested acknowledgement for publications if data is used: The OVRO-LWA expansion project was supported by NSF under grant AST-1828784. EOVSA and OVRO-LWA solar operations are supported by NSF grant AGS-2436999 to NJIT.'
 const SPEC_FITS_S3_BASE = 'https://ovro-lwa-solar.s3-us-west-2.amazonaws.com/spec_fits'
 
 function specFitsS3Url(dateIso) {
@@ -86,6 +87,7 @@ export default function App() {
   const [aiSummaryText, setAiSummaryText] = useState('')
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
   const [aiSummaryError, setAiSummaryError] = useState('')
+  const [dataPolicyOpen, setDataPolicyOpen] = useState(false)
 
   // Initialize Cloudflare Turnstile widget
   useEffect(() => {
@@ -383,17 +385,28 @@ export default function App() {
         <h1 className="text-2xl md:text-3xl font-bold text-white">
           OVRO LWA Solar Data Portal
         </h1>
-        <div className="text-xs text-slate-400 sm:text-right">
-          <span
-            role="img"
-            aria-label="wave"
-            className="mr-1"
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <button
+            type="button"
+            onClick={() => setDataPolicyOpen(true)}
+            title="Data policy and suggested acknowledgement for publications"
+            className="inline-flex items-center gap-1.5 rounded-md bg-amber-400 px-3 py-1.5 text-xs font-bold text-gray-900 shadow-sm transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
           >
-            👋
-          </span>
-          {visitorCount !== null
-            ? `Welcome as ${visitorCount.toLocaleString()} visitor`
-            : 'Welcome'}
+            <span aria-hidden="true">📋</span>
+            Data policy
+          </button>
+          <div className="text-xs text-slate-400 sm:text-right">
+            <span
+              role="img"
+              aria-label="wave"
+              className="mr-1"
+            >
+              👋
+            </span>
+            {visitorCount !== null
+              ? `Welcome as ${visitorCount.toLocaleString()} visitor`
+              : 'Welcome'}
+          </div>
         </div>
       </header>
 
@@ -767,6 +780,42 @@ export default function App() {
         </div>
       )}
 
+      {dataPolicyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="w-full max-w-2xl rounded-lg border border-amber-400/60 bg-gray-900 p-4 shadow-xl">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <h2 className="text-lg font-semibold text-white">Data policy and acknowledgement</h2>
+              <button
+                type="button"
+                className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+                onClick={() => setDataPolicyOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <p className="mb-3 text-sm text-gray-200">{DATA_POLICY_ACKNOWLEDGEMENT}</p>
+            <p className="mb-3 text-sm text-gray-200">
+              Please also follow the full data policy before redistributing or publishing these data.
+            </p>
+            <a
+              href={DATA_POLICY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded bg-amber-500/20 px-3 py-1.5 text-sm font-semibold text-amber-200 hover:bg-amber-500/30"
+            >
+              Full OVSA data policy ↗
+            </a>
+            <p className="mt-3 text-xs text-gray-400">
+              Questions:{' '}
+              <a href="mailto:peijinzhang8@gmail.com" className="text-blue-400 hover:underline">
+                Peijin Zhang
+              </a>{' '}
+              (peijinzhang8@gmail.com)
+            </p>
+          </div>
+        </div>
+      )}
+
       {hourlySpecs.length > 0 && (
         <section className="mb-8">
           <h3 className="text-lg text-gray-200 mb-2">Hourly spectrograms</h3>
@@ -1074,7 +1123,25 @@ export default function App() {
       </section>
 
       <footer className="mt-10 pt-6 border-t border-gray-700 text-sm text-gray-400 space-y-3">
-        <p className="text-gray-500 italic">{ACKNOWLEDGMENT_TEXT}</p>
+        <p>
+          <span className="text-gray-300">Acknowledgement and data policy:</span>{' '}
+          <button
+            type="button"
+            onClick={() => setDataPolicyOpen(true)}
+            className="text-amber-300 hover:underline"
+          >
+            open the data policy
+          </button>
+          {' · '}
+          <a
+            href={DATA_POLICY_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-400 hover:underline"
+          >
+            full OVSA data policy ↗
+          </a>
+        </p>
         <p>
         If you have any questions, please do not hesitate to reach out to{' '}
         <a href="mailto:peijinzhang8@gmail.com" className="text-blue-400 hover:underline">
